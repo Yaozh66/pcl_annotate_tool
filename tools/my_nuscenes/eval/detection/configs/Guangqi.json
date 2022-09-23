@@ -1,0 +1,22 @@
+{
+  "class_range":
+  {
+    "car": [0,5],
+    "truck": [0,5],
+    "bus": [0,5],
+    "trailer": [0,50],
+    "construction_vehicle": [0,50],
+    "pedestrian": [0,50],
+    "motorcycle": [0,50],
+    "bicycle": [0,50],
+    "traffic_cone": [0,50],
+    "barrier": [0,50]
+  },
+  "dist_fcn": "center_distance",
+  "dist_ths": [2.0],
+  "dist_th_tp": 2.0,
+  "min_recall": 0.1,
+  "min_precision": 0.1,
+  "max_boxes_per_sample": 500,
+  "mean_ap_weight": 5
+}
