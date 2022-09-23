@@ -134,13 +134,7 @@ def get_all_scenes():
 
 
 def get_all_scene_desc():
-    names = get_scene_names()
-    descs = {}
-    for n in names:
-        descs[n] = get_scene_desc(n)
-    for index, n in enumerate(nusc_info.keys()):
-        descs["nusc" + str(index + 1)] = None
-    return descs
+    return list(nusc_info.keys())
 
 
 def get_scene_names():

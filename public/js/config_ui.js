@@ -47,7 +47,41 @@ class ConfigUi{
             //先确保所有scene已经load
             if (!this.editor.ensurePreloaded())
                 return true;
+            saveWorldList(this.editor.data.worldList,true);
+            return true;
+        },
+        "#cfg-finish-all-scenes":async (event)=>{
+            //先确保所有scene已经load
+            // if (!this.editor.ensurePreloaded())
+            //     return true;
 
+            let scene_names = await this.get_all_scene();
+            let need_create_world_num = 0;
+            for(let i=0;i<scene_names.length;i++){
+                let meta = this.editor.data.getMetaBySceneName(scene_names[i]);
+                if(!meta)
+                    meta = await this.editor.data.readSceneMetaData(scene_names[i]);
+                need_create_world_num+=meta.frames.length;
+            }
+            let world_created_num = 0;
+            for(let i=0;i<scene_names.length;i++){
+                let sceneName = scene_names[i];
+                for(let j=0;j<this.editor.data.meta[sceneName].frames.length;j++){
+                    let frame = this.editor.data.meta[sceneName].frames[j];
+                    let world = this.editor.data.worldList.find((w)=>{
+                        return w.frameInfo.scene == sceneName && w.frameInfo.frame == frame;
+                    })
+                    if(world)
+                        world_created_num++;
+                    else{
+                        this.editor.data._createWorld(sceneName, frame, ()=>{
+                            world_created_num++;
+                            if(world_created_num == need_create_world_num)
+                                console.log("Loaded All worlds");
+                        });
+                    }
+                }
+            }
             return true;
         },
         
@@ -364,6 +398,78 @@ class ConfigUi{
     hide(){
         globalKeyDownManager.deregister('config');
         this.wrapper.style.display="none";
+    }
+
+    get_all_scene()
+    {
+        return new Promise(function(resolve, reject){
+            let xhr = new XMLHttpRequest();
+            xhr.onreadystatechange = function () {
+                if (this.readyState != 4)
+                    return;
+                if (this.status == 200) {
+                    let scenes = JSON.parse(this.responseText);
+                    resolve(scenes);
+                }
+            };
+            xhr.open('GET', `/get_all_scene_desc`, true);
+            xhr.send();
+        });
+    }
+
+    function doSaveWorldList(worldList, done,save_nusc = false)
+    {
+        if (worldList.length>0){
+            if (worldList[0].data.cfg.disableLabels){
+                window.editor.infoBox.show("Error!","labels not loaded, save action is prohibitted.")
+                return;
+            }
+        }
+
+        // console.log(worldList.length, "frames");
+        let ann = worldList.map(w=>{
+            if(w.frameInfo.scene.substring(0,4)=="nusc")
+                return {
+                    scene: w.frameInfo.scene,
+                    frame: w.frameInfo.frame_index,
+                    annotation: w.annotation.toBoxAnnotations(),
+                }
+            else
+                return {
+                    scene: w.frameInfo.scene,
+                    frame: w.frameInfo.frame,
+                    annotation: w.annotation.toBoxAnnotations(),
+                };
+        })
+
+        var xhr = new XMLHttpRequest();
+        xhr.open("POST", "/saveworldlist", true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+
+        xhr.onreadystatechange = function () {
+            if (this.readyState != 4) return;
+
+            if (this.status == 200) {
+                worldList.forEach(w=>{
+                    w.annotation.resetModified();
+                    if(save_nusc)
+                        window.editor.tracker.update_after_save(w.frameInfo.scene,w.frameInfo.frame,w.annotation.toBoxAnnotations())
+                })
+                if(save_nusc)
+                    window.editor.infoBox.show("Save","Save final result success in this frame")
+                else
+                    window.editor.infoBox.show("Save","Save temporary result success in this frame")
+                if(done)
+                    done();
+            }
+            else
+                window.editor.infoBox.show("Error", `save failed, status : ${this.status}`);
+            // end of state change: it can be after some time (async)
+        };
+
+        var b = JSON.stringify({"ann":ann,"save_nusc":save_nusc});
+        //console.log(b);
+        xhr.send(b);
     }
 
 }

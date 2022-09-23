@@ -107,7 +107,7 @@ function doSaveWorldList(worldList, done,save_nusc = false)
     })
 
     var xhr = new XMLHttpRequest();
-    xhr.open("POST", "/saveworldlist", false);
+    xhr.open("POST", "/saveworldlist", true);
     xhr.setRequestHeader('Content-Type', 'application/json');
 
     xhr.onreadystatechange = function () {

@@ -184,12 +184,13 @@ class Data
         // logger.log(`${endIndex - startIndex} frames created`);
     }
 
-    preloadScene(sceneName, currentWorld){
+    preloadScene(sceneName, currentWorld,donnotdelete){
 
         // clean other scenes.
-        this.deleteOtherWorldsExcept(sceneName);
-        this.deleteDistantWorlds(currentWorld);
-
+        if(!donnotdelete){
+            this.deleteOtherWorldsExcept(sceneName);
+            this.deleteDistantWorlds(currentWorld);
+        }
         if (!this.cfg.enablePreload)
             return;
         
@@ -331,7 +332,7 @@ class Data
     };
 
 
-    readSceneMetaData(sceneName)
+    readSceneMetaData(sceneName,not_async)
     {
         let self =this;
         return new Promise(function(resolve, reject){
