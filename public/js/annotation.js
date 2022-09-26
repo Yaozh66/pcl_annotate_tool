@@ -142,6 +142,8 @@ function Annotation(sceneMeta, world, frameInfo){
                 ann.velocity = b.velocity;
             if(b.timestamp)
                 ann.timestamp = b.timestamp;
+            ann.num_lidar_pts = b.world.lidar.get_box_points_number(b);
+            ann.num_radar_pts = b.world.radars._get_points_of_box(b);
             return ann;
         });
 
@@ -341,9 +343,7 @@ function Annotation(sceneMeta, world, frameInfo){
         return mesh;
     };
 
-    this.add_box_by_det = function(det){
-        return this.add_box(det.psr.location,det.psr.scale,det.psr.rotation,det.obj_type,det.obj_id)
-    }
+
 
     this.load_box = function(box){
         
@@ -435,50 +435,52 @@ function Annotation(sceneMeta, world, frameInfo){
     this.load_annotation=function(on_load){
         if (this.data.cfg.disableLabels)
             on_load([]);
-        else if(this.data.cfg.mode == "real" && this.data.cfg.useOfflineTrack){
-            let xhr = new XMLHttpRequest();
-            let _self = this;
-            xhr.onreadystatechange = function () {
-                if (this.readyState !== 4)
-                    return;
-                if (this.status == 200){
-                    let text = JSON.parse(this.responseText);
-                    let ann = _self.frameInfo.anno_to_boxes(this.responseText,text);
-                    on_load(ann[_self.frameInfo.frame]);
-                    _self.world.from = "track";
-
-                }
-            };
-            xhr.open('GET', this.data.cfg.tracking_file, true);
-            xhr.send();
-        }
-        else{
-            var xhr = new XMLHttpRequest();
-            // we defined the xhr
-            var _self = this;
-            xhr.onreadystatechange = function () {
-                if (this.readyState != 4) return;
-            
-                if (this.status == 200) {
-                    let text = JSON.parse(this.responseText);
-                    let ann = _self.frameInfo.anno_to_boxes(this.responseText,text);
-                    if(_self.data.cfg.mode == "test" && _self.frameInfo.frame_index%_self.data.cfg.testNFrame !=0){
-                        ann.anns=[];
-                        ann.has_file = false;
+        else {
+            if (this.data.cfg.mode == "real" && this.data.cfg.onlyuseOfflineTrack) {
+                let xhr = new XMLHttpRequest();
+                let _self = this;
+                xhr.onreadystatechange = function () {
+                    if (this.readyState !== 4)
+                        return;
+                    if (this.status == 200) {
+                        let text = JSON.parse(this.responseText);
+                        let ann = _self.frameInfo.anno_to_boxes(this.responseText, text);
+                        on_load(ann[_self.frameInfo.frame]);
+                        _self.world.from = "track";
                     }
-                    on_load(ann.anns);
-                    _self.world.has_file = ann.has_file;
-                    _self.world.from = ann.from;
+                };
+                xhr.open('GET', this.data.cfg.tracking_file, true);
+                xhr.send();
+            }
+            else{
+                var xhr = new XMLHttpRequest();
+                // we defined the xhr
+                var _self = this;
+                xhr.onreadystatechange = function () {
+                    if (this.readyState != 4) return;
 
-                }
-                // end of state change: it can be after some time (async)
-            };
-            if (this.frameInfo.scene.substring(0,4) == 'nusc')
-                xhr.open('GET', "/load_annotation"+"?scene="+this.frameInfo.scene+"&frame="+this.frameInfo.frame_index.toString()+"&mode="+this.data.cfg.mode, true);
-            else
-                xhr.open('GET', "/load_annotation"+"?scene="+this.frameInfo.scene+"&frame="+this.frameInfo.frame+"&mode="+this.data.cfg.mode, true);
-            xhr.send();
+                    if (this.status == 200) {
+                        let text = JSON.parse(this.responseText);
+                        let ann = _self.frameInfo.anno_to_boxes(this.responseText,text);
+                        if(_self.data.cfg.mode == "test" && _self.frameInfo.frame_index%_self.data.cfg.testNFrame !=0){
+                            ann.anns=[];
+                            ann.has_file = false;
+                        }
+                        on_load(ann.anns);
+                        _self.world.has_file = ann.has_file;
+                        _self.world.from = ann.from;
+
+                    }
+                    // end of state change: it can be after some time (async)
+                };
+                if (this.frameInfo.scene.substring(0,4) == 'nusc')
+                    xhr.open('GET', "/load_annotation"+"?scene="+this.frameInfo.scene+"&frame="+this.frameInfo.frame_index.toString()+"&mode="+this.data.cfg.mode, true);
+                else
+                    xhr.open('GET', "/load_annotation"+"?scene="+this.frameInfo.scene+"&frame="+this.frameInfo.frame+"&mode="+this.data.cfg.mode, true);
+                xhr.send();
+            }
         }
+
     };
 
     this.reloadAnnotation=function(done){
@@ -578,8 +580,8 @@ function Annotation(sceneMeta, world, frameInfo){
             mesh.annotator = b.annotator;
         if (b.follows)
             mesh.follows = b.follows;
-        // if(b.velocity)
-        //     mesh.velocity = b.velocity;
+        if(b.velocity)
+            mesh.velocity = b.velocity;
         if(b.timestamp)
             mesh.timestamp = b.timestamp;
         

@@ -447,7 +447,7 @@ class ImageContext extends MovableView{
             let p = document.createElementNS("http://www.w3.org/2000/svg", 'circle');
             p.setAttribute("cx", x);
             p.setAttribute("cy", y);
-            p.setAttribute("r", 2);
+            p.setAttribute("r", radius.toString());
             p.setAttribute("stroke-width", "1");            
 
             if (! cssclass){
@@ -465,12 +465,6 @@ class ImageContext extends MovableView{
         return svg;
     }
 
-    draw_point(x,y){
-        let trans_ratio = this.get_trans_ratio();
-        let svg = this.ui.querySelector("#svg-points");
-        let pts_svg = this.points_to_svg([x,y], trans_ratio, "radar-points");
-        svg.appendChild(pts_svg);
-    };
 
 
     render_2d_image (){
@@ -530,11 +524,11 @@ class ImageContext extends MovableView{
         {
             this.world.radars.radarList.forEach(radar=>{
                 let pts = radar.get_unoffset_radar_points();
-                let ptsOnImg = points3d_to_image2d(pts, calib);
+                let ptsOnImg = points3d_to_image2d(pts, calib,true,null, img.width, img.height);
 
                 // there may be none after projecting
                 if (ptsOnImg && ptsOnImg.length>0){
-                    let pts_svg = this.points_to_svg(ptsOnImg, trans_ratio, radar.cssStyleSelector);
+                    let pts_svg = this.points_to_svg(ptsOnImg, trans_ratio, radar.cssStyleSelector,5);
                     svg.appendChild(pts_svg);
                 }
             });
@@ -545,11 +539,11 @@ class ImageContext extends MovableView{
         // project lidar points onto camera image   
         if (this.cfg.projectLidarToImage){
             let pts = this.world.lidar.get_all_points();
-            let ptsOnImg = points3d_to_image2d(pts, calib, true, this.img_lidar_point_map, img.width, img.height);
+            let ptsOnImg = points3d_to_image2d(pts, calib, true, null, img.width, img.height);
 
             // there may be none after projecting
             if (ptsOnImg && ptsOnImg.length>0){
-                let pts_svg = this.points_to_svg(ptsOnImg, trans_ratio);
+                let pts_svg = this.points_to_svg(ptsOnImg, trans_ratio,"lidar-points",2.5);
                 svg.appendChild(pts_svg);
             }
         }
@@ -976,7 +970,7 @@ function points3d_homo_to_image2d(points3d, calib, accept_partial=false,save_map
                 
                 x = Math.round(x);
                 y = Math.round(y);
-                if (x > 0 && x < img_dx && y > 0 && y < img_dy){
+                if (x > 0 && y > 0 && x<img_dx &&y<img_dy){
                     if (save_map){
                         save_map[img_dx*y+x] = [i, points3d[i*4+0], points3d[i*4+1], points3d[i*4+2]];  //save index? a little dangerous! //[points3d[i*4+0], points3d[i*4+1], points3d[i*4+2]];
                     }

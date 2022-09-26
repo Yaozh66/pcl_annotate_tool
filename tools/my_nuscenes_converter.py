@@ -89,43 +89,66 @@ def create_nuscenes_infos(root_path,
         version (str): Version of the data.
             Default: 'v1.0-trainval'
     """
-#     from my_nuscenes.nuscenes import NuScenes
-#     nusc = NuScenes(version=version, dataroot=root_path, verbose=True)
-#
-#     info_path = osp.join(root_path, 'SUSTech_data_infos.pkl')
-#     if not osp.exists(info_path):
-#         train_scenes = nusc.scene
-#         train_nusc_infos = _fill_trainval_infos(nusc, train_scenes)
-#         metadata = dict(version=version)
-#         data = dict(infos=train_nusc_infos, metadata=metadata)
-#         with open(info_path, 'wb') as f:
-#             pickle.dump(data, f)
-#     else:
-#         with open(info_path, 'rb') as f:
-#             train_nusc_infos = pickle.load(f)["infos"]
-#
-    info_path = osp.join(root_path, 'SUSTech_data_infos_real.pkl')
-    if not osp.exists(info_path):
-        train_nusc_infos1 = _fill_trainval_infos_SUSTECH(nusc, train_nusc_infos)
-        with open(info_path, 'wb') as f:
-            pickle.dump(train_nusc_infos1, f)
-    else:
-        with open(info_path, 'rb') as f:
-            train_nusc_infos1 = pickle.load(f)
+    from my_nuscenes.nuscenes import NuScenes
+    nusc = NuScenes(version=version, dataroot=root_path, verbose=True)
 
-#     det_infos = convert_detection_file(train_nusc_infos1)
-#     info_path = osp.joinoutput_val(root_path, 'SUSTech_data_det_infos.json')
-#     with open(info_path, 'w') as f:
-#         json.dump(det_infos, f)
+    if version == "v1.0-mini":
+        info_path = osp.join(root_path, 'SUSTech_data_infos.pkl')
+        if not osp.exists(info_path):
+            train_scenes = nusc.scene
+            train_nusc_infos = _fill_trainval_infos(nusc, train_scenes)
+            metadata = dict(version=version)
+            data = dict(infos=train_nusc_infos, metadata=metadata)
+            with open(info_path, 'wb') as f:
+                pickle.dump(data, f)
+        else:
+            with open(info_path, 'rb') as f:
+                train_nusc_infos = pickle.load(f)["infos"]
+        #
+        info_path = osp.join(root_path, 'SUSTech_data_infos_real.pkl')
+        if not osp.exists(info_path):
+            train_nusc_infos1 = _fill_trainval_infos_SUSTECH(nusc, train_nusc_infos)
+            with open(info_path, 'wb') as f:
+                pickle.dump(train_nusc_infos1, f)
+        else:
+            with open(info_path, 'rb') as f:
+                train_nusc_infos1 = pickle.load(f)
 
-    track_infos = convert_tracking_file(train_nusc_infos1)
-    info_path = osp.join(root_path, 'SUSTech_data_track_infos.json')
-    with open(info_path, 'w') as f:
-        json.dump(track_infos, f)
+        #     det_infos = convert_detection_file(train_nusc_infos1)
+        #     info_path = osp.joinoutput_val(root_path, 'SUSTech_data_det_infos.json')
+        #     with open(info_path, 'w') as f:
+        #         json.dump(det_infos, f)
+
+        #     track_infos = convert_tracking_file(train_nusc_infos1)
+        #     info_path = osp.join(root_path, 'SUSTech_data_track_infos.json')
+        #     with open(info_path, 'w') as f:
+        #         json.dump(track_infos, f)
+
+    elif version == "v1.0-trainval":
+        info_path = osp.join(root_path, 'SUSTech_data_infos.pkl')
+        if not osp.exists(info_path):
+            train_scenes = nusc.scene
+            train_nusc_infos = _fill_trainval_infos(nusc, train_scenes)
+            metadata = dict(version=version)
+            data = dict(infos=train_nusc_infos, metadata=metadata)
+            with open(info_path, 'wb') as f:
+                pickle.dump(data, f)
+        else:
+            with open(info_path, 'rb') as f:
+                train_nusc_infos = pickle.load(f)["infos"]
+        #
+        info_path = osp.join(root_path, 'SUSTech_data_infos_real.pkl')
+        if not osp.exists(info_path):
+            train_nusc_infos1 = _fill_trainval_infos_SUSTECH(nusc, train_nusc_infos)
+            with open(info_path, 'wb') as f:
+                pickle.dump(train_nusc_infos1, f)
+        else:
+            with open(info_path, 'rb') as f:
+                train_nusc_infos1 = pickle.load(f)
 
 def convert_tracking_file(sustech_info):
     with open("/home/yaozh/WebstormProjects/my_pcl_annotate/outputs/output_mini/tracking_result/tracking_result.json",
-                  'r') as f:
+              'r') as f:
         det_res = json.load(f)["results"]
         res = {}
         for frame_token, det in tqdm(det_res.items()):
@@ -159,8 +182,6 @@ def convert_tracking_file(sustech_info):
                              "timestamp": sustech_info[scene_name]["timestamp"][frame_index]})
             res.update({frame_token: anns})
         return res
-
-
 
 
 def convert_detection_file(sustech_info):
@@ -209,7 +230,7 @@ def _fill_trainval_infos_SUSTECH(nusc, nusc_info):
             "frames": [],
             "timestamp": [],
             'is_key_frame': [],
-            'radar_path':[],
+            'radar_path': [],
             'lidar_path': [],
             'anns': [],
             'camera_path': {'CAM_FRONT': [], 'CAM_FRONT_RIGHT': [], 'CAM_FRONT_LEFT': [],
@@ -222,7 +243,7 @@ def _fill_trainval_infos_SUSTECH(nusc, nusc_info):
                 'CAM_BACK_LEFT',
                 'CAM_BACK_RIGHT',
             ],
-            'calib': {"camera": {},"radar":{}},
+            'calib': {"camera": {}, "radar": {}},
             'ego_pose': [],
             'lidar2ego': [],
             'ego2lidar': [],
@@ -244,9 +265,9 @@ def _fill_trainval_infos_SUSTECH(nusc, nusc_info):
             scene['ego2global'].append(ego2global.T.flatten().tolist())
             scene['global2ego'].append(np.linalg.inv(ego2global).T.flatten().tolist())
 
-#             ego2global_new = global2new_global @ ego2global  # new_global旋转了180度
+            #             ego2global_new = global2new_global @ ego2global  # new_global旋转了180度
             ego_ori = Quaternion(matrix=ego2global).yaw_pitch_roll
-#             ego2global_new = ego2global_new.flatten().tolist()
+            #             ego2global_new = ego2global_new.flatten().tolist()
             scene['ego_pose'].append({'x': ego_pos[0], 'y': ego_pos[1], 'z': ego_pos[2]
                                          , 'pitch': ego_ori[1], 'roll': ego_ori[2], 'azimuth': ego_ori[0]})
 
@@ -291,8 +312,11 @@ def _fill_trainval_infos_SUSTECH(nusc, nusc_info):
         SUSTECH_info["nusc" + str(i + 1)] = scene
     return SUSTECH_info
 
-radar_names=["RADAR_BACK_LEFT","RADAR_BACK_RIGHT","RADAR_FRONT","RADAR_FRONT_LEFT","RADAR_FRONT_RIGHT"]
-radar_colors = [[0.0,1.0,0.0],[1.0,0.0,0.0],[0.0,0.0,1.0],[1.0,1.0,0.0],[1.0,0.0,1.0]]
+
+radar_names = ["RADAR_BACK_LEFT", "RADAR_BACK_RIGHT", "RADAR_FRONT", "RADAR_FRONT_LEFT", "RADAR_FRONT_RIGHT"]
+radar_colors = [[0.0, 1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0], [1.0, 1.0, 0.0], [1.0, 0.0, 1.0]]
+
+
 def _fill_trainval_infos(nusc, train_scenes, nsweeps=10, for_detection=False, filter_zero=True):
     """Generate the train/val infos from the raw data.
 
@@ -364,22 +388,23 @@ def _fill_trainval_infos(nusc, train_scenes, nsweeps=10, for_detection=False, fi
 
             radar_paths = {}
             radar_paras = {}
-            for i,radar_name in enumerate(radar_names):
+            for i, radar_name in enumerate(radar_names):
                 radar_token = sample['data'][radar_name]
                 radar_path, _, _ = nusc.get_sample_data(radar_token)
                 radar_paths[radar_name] = radar_path[radar_path.rfind(nusc.version):]
-                radar_info = obtain_sensor2top(nusc, radar_token, l2e_t, l2e_r_mat,e2g_t, e2g_r_mat, radar_name)
-                radar_para={"cssStyleSelector":"radar-points","color":radar_colors[i],"translation":radar_info["sensor2lidar_translation"].tolist(),
-                "rotation":Quaternion(matrix=radar_info["sensor2lidar_rotation"]).yaw_pitch_roll,"point_size":4,"disable":False}
+                radar_info = obtain_sensor2top(nusc, radar_token, l2e_t, l2e_r_mat, e2g_t, e2g_r_mat, radar_name)
+                radar_para = {"cssStyleSelector": "radar-points", "color": radar_colors[i],
+                              "translation": radar_info["sensor2lidar_translation"].tolist(),
+                              "rotation": Quaternion(matrix=radar_info["sensor2lidar_rotation"]).yaw_pitch_roll,
+                              "point_size": 4, "disable": False}
                 radar_paras[radar_name] = radar_para
-
 
             info = {
                 'is_key_frame': sd_rec['is_key_frame'],
                 'lidar_token': lidar_token,
                 'lidar_path': lidar_path,
                 'radar_path': radar_paths,
-                'radar_para':radar_paras,
+                'radar_para': radar_paras,
                 'token': sample['token'],
                 'cams': dict(),
                 'lidar2ego_translation': cs_record['translation'],
@@ -482,7 +507,6 @@ def _fill_trainval_infos(nusc, train_scenes, nsweeps=10, for_detection=False, fi
                     info["gt_boxes_token"] = tokens[mask]
 
             else:
-
 
                 # obtain 6 image's information per frame
                 camera_types = [
@@ -659,7 +683,8 @@ def nusc_det_to_nusc_box(detection):
     return [Box(record['translation'], record['size'], Quaternion(record['rotation']),
                 name=record['detection_name'], score=record['detection_score'],
                 velocity=[*record['velocity'], 0],
-                instance_token=int(record["obj_id"]) if "obj_id" in record.keys() else int(record["tracking_id"]) if "tracking_id" in record.keys() else None,
+                instance_token=int(record["obj_id"]) if "obj_id" in record.keys() else int(
+                    record["tracking_id"]) if "tracking_id" in record.keys() else None,
                 token='predicted') for record in detection]
 
 
@@ -672,3 +697,190 @@ def _global_nusc_box_to_lidar(nusc_info, boxes, scene_name, frame_index):
         box.transform(ego2lidar)
         boxlist.append(box)
     return boxlist
+
+
+def obtain_sensor2top_PETR(nusc,
+                      sensor_token,
+                      l2e_t,
+                      l2e_r_mat,
+                      e2g_t,
+                      e2g_r_mat,
+                      sensor_type='lidar'):
+    """Obtain the info with RT matric from general sensor to Top LiDAR.
+
+    Args:
+        nusc (class): Dataset class in the nuScenes dataset.
+        sensor_token (str): Sample data token corresponding to the
+            specific sensor type.
+        l2e_t (np.ndarray): Translation from lidar to ego in shape (1, 3).
+        l2e_r_mat (np.ndarray): Rotation matrix from lidar to ego
+            in shape (3, 3).
+        e2g_t (np.ndarray): Translation from ego to global in shape (1, 3).
+        e2g_r_mat (np.ndarray): Rotation matrix from ego to global
+            in shape (3, 3).
+        sensor_type (str): Sensor to calibrate. Default: 'lidar'.
+
+    Returns:
+        sweep (dict): Sweep information after transformation.
+    """
+    sd_rec = nusc.get('sample_data', sensor_token)
+    cs_record = nusc.get('calibrated_sensor',
+                         sd_rec['calibrated_sensor_token'])
+    pose_record = nusc.get('ego_pose', sd_rec['ego_pose_token'])
+    data_path = str(nusc.get_sample_data_path(sd_rec['token']))
+    if os.getcwd() in data_path:  # path from lyftdataset is absolute path
+        data_path = data_path.split(f'{os.getcwd()}/')[-1]  # relative path
+    sweep = {
+        'data_path': data_path,
+        'type': sensor_type,
+        'sample_data_token': sd_rec['token'],
+        'sensor2ego_translation': cs_record['translation'],
+        'sensor2ego_rotation': cs_record['rotation'],
+        'ego2global_translation': pose_record['translation'],
+        'ego2global_rotation': pose_record['rotation'],
+        'timestamp': sd_rec['timestamp']
+    }
+    l2e_r_s = sweep['sensor2ego_rotation']
+    l2e_t_s = sweep['sensor2ego_translation']
+    e2g_r_s = sweep['ego2global_rotation']
+    e2g_t_s = sweep['ego2global_translation']
+
+    # obtain the RT from sensor to Top LiDAR
+    # sweep->ego->global->ego'->lidar
+    l2e_r_s_mat = Quaternion(l2e_r_s).rotation_matrix
+    e2g_r_s_mat = Quaternion(e2g_r_s).rotation_matrix
+    R = (l2e_r_s_mat.T @ e2g_r_s_mat.T) @ (
+        np.linalg.inv(e2g_r_mat).T @ np.linalg.inv(l2e_r_mat).T)
+    T = (l2e_t_s @ e2g_r_s_mat.T + e2g_t_s) @ (
+        np.linalg.inv(e2g_r_mat).T @ np.linalg.inv(l2e_r_mat).T)
+    T -= e2g_t @ (np.linalg.inv(e2g_r_mat).T @ np.linalg.inv(l2e_r_mat).T
+                  ) + l2e_t @ np.linalg.inv(l2e_r_mat).T
+    sweep['sensor2lidar_rotation'] = R.T  # points @ R.T + T
+    sweep['sensor2lidar_translation'] = T
+    return sweep
+
+def _fill_trainval_infos_from_SUSTECH(nusc,
+                                     train_scenes,
+                                     val_scenes,
+                                     test=False,
+                                     datadir = None,
+                                     max_sweeps=10):
+    train_nusc_infos = []
+    val_nusc_infos = []
+    for sustech_scene_name in os.listdir(datadir):
+        for sample_file in os.listdir(os.path.join(datadir,sustech_scene_name,"label")):
+            with open (sample_file,'r') as f:
+                sampledatas = json.load(f)
+            frame_token = sampledatas[0]["frame_token"]
+            sample = sd_rec = nusc.get('sample', frame_token)
+            lidar_token = sample['data']['LIDAR_TOP']
+            sd_rec = nusc.get('sample_data', sample['data']['LIDAR_TOP'])
+            cs_record = nusc.get('calibrated_sensor',
+                                 sd_rec['calibrated_sensor_token'])
+            pose_record = nusc.get('ego_pose', sd_rec['ego_pose_token'])
+            lidar_path, _, _ = nusc.get_sample_data(lidar_token)
+            mmcv.check_file_exist(lidar_path)
+            info = {
+                'lidar_token': lidar_token,
+                'lidar_path': lidar_path,
+                'token': sample['token'],
+                'sweeps': [],
+                'cams': dict(),
+                'lidar2ego_translation': cs_record['translation'],
+                'lidar2ego_rotation': cs_record['rotation'],
+                'ego2global_translation': pose_record['translation'],
+                'ego2global_rotation': pose_record['rotation'],
+                'timestamp': sample['timestamp'],
+            }
+            l2e_r = info['lidar2ego_rotation']
+            l2e_t = info['lidar2ego_translation']
+            e2g_r = info['ego2global_rotation']
+            e2g_t = info['ego2global_translation']
+            l2e_r_mat = Quaternion(l2e_r).rotation_matrix
+            e2g_r_mat = Quaternion(e2g_r).rotation_matrix
+
+            # obtain 6 image's information per frame
+            camera_types = [
+                'CAM_FRONT',
+                'CAM_FRONT_RIGHT',
+                'CAM_FRONT_LEFT',
+                'CAM_BACK',
+                'CAM_BACK_LEFT',
+                'CAM_BACK_RIGHT',
+            ]
+            for cam in camera_types:
+                cam_token = sample['data'][cam]
+                cam_path, _, cam_intrinsic = nusc.get_sample_data(cam_token)
+                cam_info = obtain_sensor2top_PETR(nusc, cam_token, l2e_t, l2e_r_mat,
+                                             e2g_t, e2g_r_mat, cam)
+                cam_info.update(cam_intrinsic=cam_intrinsic)
+                info['cams'].update({cam: cam_info})
+
+            sd_rec = nusc.get('sample_data', sample['data']['LIDAR_TOP'])
+            sweeps = []
+            while len(sweeps) < max_sweeps:
+                if not sd_rec['prev'] == '':
+                    sweep = obtain_sensor2top_PETR(nusc, sd_rec['prev'], l2e_t,
+                                              l2e_r_mat, e2g_t, e2g_r_mat, 'lidar')
+                    sweeps.append(sweep)
+                    sd_rec = nusc.get('sample_data', sd_rec['prev'])
+                else:
+                    break
+            info['sweeps'] = sweeps
+            if not test:
+                boxes = sampledatas[1:]
+                locs = np.array([box["psr"]["position"][axis] for axis in ["x","y","z"] for box in boxes]).reshape(-1, 3)
+                dims = np.array([box["psr"]["scale"][axis] for axis in ["y", "x", "z"] for box in boxes]).reshape(-1, 3)
+                rots = np.array([box["psr"]["rotation"][axis] for axis in ["z", "y", "x"] for box in boxes]).reshape(-1, 3)
+                velocity = np.array([box["velocity"] for box in boxes])
+#                 valid_flag =
+
+
+
+
+
+
+def convert_SUSTECH_toPETR(root_path,
+                          info_prefix,
+                          datadir,
+                          version='v1.0-trainval',
+                          max_sweeps=10):
+    from my_nuscenes.nuscenes import NuScenes
+    nusc = NuScenes(version=version, dataroot=root_path, verbose=True)
+    from nuscenes.utils import splits
+    available_vers = ['v1.0-trainval', 'v1.0-test', 'v1.0-mini']
+    assert version in available_vers
+    if version == 'v1.0-trainval':
+        train_scenes = splits.train
+        val_scenes = splits.val
+    elif version == 'v1.0-test':
+        train_scenes = splits.test
+        val_scenes = []
+    elif version == 'v1.0-mini':
+        train_scenes = splits.mini_train
+        val_scenes = splits.mini_val
+    else:
+        raise ValueError('unknown')
+    # filter existing scenes.
+    available_scenes = get_available_scenes(nusc)
+    available_scene_names = [s['name'] for s in available_scenes]
+    train_scenes = list(
+        filter(lambda x: x in available_scene_names, train_scenes))
+    val_scenes = list(filter(lambda x: x in available_scene_names, val_scenes))
+    train_scenes = set([
+        available_scenes[available_scene_names.index(s)]['token']
+        for s in train_scenes
+    ])
+    val_scenes = set([
+        available_scenes[available_scene_names.index(s)]['token']
+        for s in val_scenes
+    ])
+
+    test = 'test' in version
+    if test:
+        print('test scene: {}'.format(len(train_scenes)))
+    else:
+        print('train scene: {}, val scene: {}'.format(
+            len(train_scenes), len(val_scenes)))
+
+    train_nusc_infos, val_nusc_infos = _fill_trainval_infos_from_SUSTECH(nusc,train_scenes, val_scenes, test,datadir, max_sweeps=max_sweeps)

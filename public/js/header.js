@@ -56,6 +56,7 @@ var Header=function(ui, data, cfg, onSceneChanged, onFrameChanged, onObjectSelec
         let distance = Math.sqrt(pos.x*pos.x + pos.y*pos.y).toFixed(2);
         var globalpos = box.globalpsr.position;
         var velocity = box.velocity;
+        var points_radar = box.world.radars._get_points_of_box(box);
 
         if(velocity)
             this.boxUi.innerHTML = "<span>" + box.obj_type +"-"+box.obj_track_id +
@@ -67,7 +68,7 @@ var Header=function(ui, data, cfg, onSceneChanged, onFrameChanged, onObjectSelec
                                     (rotation.x*180/Math.PI).toFixed(2)+" "+(rotation.y*180/Math.PI).toFixed(2)+" "+(rotation.z*180/Math.PI).toFixed(2)+
                                    "</span> | <span title='global_pos'>"+globalpos.x.toFixed(2) +" "+globalpos.y.toFixed(2) + " " + globalpos.z.toFixed(2) +
                                    "</span> | <span title='velocity'>"+velocity[0].toFixed(2) +" "+velocity[1].toFixed(2)+
-            "</span> | <span title = 'points'>" + points_number + "</span> ";
+            "</span> | <span title = 'lidar/radar points number'>" + points_number + " "+points_radar+"</span> ";
         else
             this.boxUi.innerHTML = "<span>" + box.obj_type +"-"+box.obj_track_id +
                 (box.annotator? ("</span> | <span title='annotator'>" + box.annotator) : "") +

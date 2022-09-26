@@ -208,15 +208,22 @@ class Data
             return !world;
         }
         let pendingFrames = meta.frames.slice(startIndex, endIndex).filter(_need_create);
+        let _self = this;
         let _do_create = (frame)=>{
             this._createWorld(sceneName, frame,()=>{
                 numLoaded++;
-                if(numLoaded==pendingFrames.length)
-                    this.worldList.forEach(w=>w.annotation.boxes.forEach(box=>{
-                        window.editor.change_box_velocity(box);
-                        if(box.world.from=="tmp")
-                            window.editor.tracker.update_box(box.world.frameInfo.frame,box,'modify');
-                    }));
+                if(numLoaded==pendingFrames.length){
+                    console.log("Preloaded All frames in "+sceneName);
+                    _self.worldList.forEach(w=>{
+                        w.annotation.boxes.forEach(box=>{
+                                window.editor.change_box_velocity(box);
+                                if(box.world.from=="tmp")
+                                    window.editor.tracker.update_box(box.world.frameInfo.frame,box,'modify');
+                            });
+                        }
+                    );
+                }
+
             });
         };
         pendingFrames.forEach(_do_create);

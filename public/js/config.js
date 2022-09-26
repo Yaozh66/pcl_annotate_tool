@@ -46,7 +46,7 @@ class Config{
     ignoreDistantObject = true;
 
     //Tracking algo Param
-    useOfflineTrack = true;
+    onlyuseOfflineTrack = true;
     thresh = 0.2;
     detection_file = "/data/SUSTech_data_det_infos.json"
     tracking_file = "/data/SUSTech_data_track_infos.json"
@@ -63,8 +63,8 @@ class Config{
     //disableGrid = true;
     //disableAxis = true;
     //disableMainViewKeyDown = true;
-    // projectRadarToImage = true;
-    //projectLidarToImage = true;   
+    projectRadarToImage = true;
+    projectLidarToImage = true;
 
     constructor()
     {

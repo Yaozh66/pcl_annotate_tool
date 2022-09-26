@@ -38,7 +38,10 @@ function tracker(cfg){
         else{
             if(this.det)
                 this.det[frame_token] =res;
-            res.forEach(det=>this.sizemap[scene_name][parseInt(det["obj_id"])]=det.psr.scale);
+            res.forEach(det=>{
+                if(det.psr)
+                    this.sizemap[scene_name][parseInt(det["obj_id"])]=det.psr.scale
+            });
         }
 
         this.change = true;
@@ -114,7 +117,7 @@ function tracker(cfg){
     };
     this.track = async function (scene,frame_index,batch_mode = false,batch_selected_frames=[],batch_selected_obj_id=null,finishCB = null) {
         //check the parameters
-        if((batch_mode == true && frame_index >=0) || (batch_mode == false && batch_selected_frames)){
+        if((batch_mode == true && frame_index >=0) || (batch_mode == false && batch_selected_frames.length>0)){
             window.editor.infoBox.show("Error!","Track Function Set Error")
             return;
         }
@@ -126,9 +129,11 @@ function tracker(cfg){
             frame_index = Math.min(...batch_selected_frames);
         for (let prev_frame = frame_index; prev_frame > -1; prev_frame--) {
             let frame_token = window.editor.data.meta[scene]["frames"][prev_frame];
-            if (this.has_ann[scene].includes(frame_token)) {
-                start_frame = prev_frame;
-                break;
+            if(this.has_ann[scene]){
+                if (this.has_ann[scene].includes(frame_token)) {
+                    start_frame = prev_frame;
+                    break;
+                }
             }
             if (this.has_track_frame.includes(prev_frame)) {
                 if(prev_frame == frame_index){
@@ -160,6 +165,8 @@ function tracker(cfg){
                         //匹配上的id赋给检测结果
                         _self.det[frame_token][b.det_index]["obj_id"] = b.obj_id;
                         let box = _self.det[frame_token][b.det_index];
+                        if(!_self.sizemap[scene])
+                            _self.sizemap[scene]={}
                         if(_self.sizemap[scene][parseInt(box.obj_id)])
                             box.psr.scale = _self.sizemap[scene][parseInt(box.obj_id)];
                         //可视化跟踪结果

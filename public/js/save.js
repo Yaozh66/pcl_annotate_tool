@@ -55,7 +55,7 @@ function reloadWorldList(worldList, done,obj_id){
 var saveDelayTimer = null;
 var pendingSaveList = [];
 
-function saveWorldList(worldList,save_nusc = false){
+function saveWorldList(worldList,save_nusc = false,async = true){
     worldList.forEach(w=>{
         if (!pendingSaveList.includes(w))
             pendingSaveList.push(w);
@@ -71,7 +71,7 @@ function saveWorldList(worldList,save_nusc = false){
         doSaveWorldList(pendingSaveList, ()=>{
             editor.header.updateModifiedStatus();
             // checkScene(scene);
-        },save_nusc);
+        },save_nusc,async);
 
         //reset
         saveDelayTimer = null;
@@ -81,7 +81,7 @@ function saveWorldList(worldList,save_nusc = false){
 }
 
 
-function doSaveWorldList(worldList, done,save_nusc = false)
+function doSaveWorldList(worldList, done,save_nusc = false,async = true)
 {
     if (worldList.length>0){
         if (worldList[0].data.cfg.disableLabels){
@@ -107,7 +107,7 @@ function doSaveWorldList(worldList, done,save_nusc = false)
     })
 
     var xhr = new XMLHttpRequest();
-    xhr.open("POST", "/saveworldlist", true);
+    xhr.open("POST", "/saveworldlist", async);
     xhr.setRequestHeader('Content-Type', 'application/json');
 
     xhr.onreadystatechange = function () {

@@ -8,3 +8,4 @@ tools/pypcd
 temp*/
 /data/nusc/
 /outputs/
+/data/final/

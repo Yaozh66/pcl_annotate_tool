@@ -1,6 +1,7 @@
 import { globalKeyDownManager } from "./keydown_manager.js";
 import {logger} from "./log.js";
 import {saveWorldList} from "./save.js";
+import {World} from "./world.js";
 
 class ConfigUi{
 
@@ -51,37 +52,31 @@ class ConfigUi{
             return true;
         },
         "#cfg-finish-all-scenes":async (event)=>{
-            //先确保所有scene已经load
-            // if (!this.editor.ensurePreloaded())
-            //     return true;
-            // 其他world的获取通过load_annotation接口，逐个保存
-
+            const sleep = (delay) => new Promise((resolve) => setTimeout(resolve, delay))
             let scene_names = await this.get_all_scene();
-            let need_create_world_num = 0;
-            for(let i=0;i<scene_names.length;i++){
-                let meta = this.editor.data.getMetaBySceneName(scene_names[i]);
-                if(!meta)
-                    meta = await this.editor.data.readSceneMetaData(scene_names[i]);
-                need_create_world_num+=meta.frames.length;
-            }
-            let world_created_num = 0;
             for(let i=0;i<scene_names.length;i++){
                 let sceneName = scene_names[i];
-                for(let j=0;j<this.editor.data.meta[sceneName].frames.length;j++){
-                    let frame = this.editor.data.meta[sceneName].frames[j];
-                    let world = this.editor.data.worldList.find((w)=>{
-                        return w.frameInfo.scene == sceneName && w.frameInfo.frame == frame;
-                    })
-                    if(world)
-                        world_created_num++;
-                    else{
-                        this.editor.data._createWorld(sceneName, frame, ()=>{
-                            world_created_num++;
-                            if(world_created_num == need_create_world_num)
-                                console.log("Loaded All worlds");
-                        });
-                    }
+                let meta = this.editor.data.getMetaBySceneName(sceneName);
+                if(!meta)
+                    meta =await this.editor.data.readSceneMetaData(sceneName)
+                let numLoaded = 0;
+                let worldlist= [];
+                for(let j=0;j<meta.frames.length;j++){
+                    let frame = meta.frames[j];
+                    let [x,y,z] = this.editor.data.allocateOffset();
+                    let world = new World(this.editor.data, sceneName, frame, [1000.0*x, 1000.0*y, 1000.0*z], ()=>{
+                        numLoaded++;
+                        worldlist.push(world);
+                        if(numLoaded==meta.frames.length){
+                            console.log(sceneName+" save this scene success");
+                            worldlist.forEach(w=>{
+                                w.annotation.boxes.forEach(box=> this.change_box_velocity(box,worldlist));
+                            });
+                            this.doSaveWorldList(worldlist,true);
+                        }
+                    });
                 }
+                await  sleep(3600);
             }
             return true;
         },
@@ -418,7 +413,28 @@ class ConfigUi{
         });
     }
 
-    save_world(worldList, done,save_nusc = false)
+    change_box_velocity = function(box,worldList){
+        let lastworld = worldList.find(w=>w.frameInfo.scene==box.world.frameInfo.scene&&
+            w.frameInfo.frame_index==box.world.frameInfo.frame_index-1);
+        let lastbox =lastworld?lastworld.annotation.findBoxByTrackId(box.obj_track_id):null;
+        let nextworld = worldList.find(w=>w.frameInfo.scene==box.world.frameInfo.scene&&
+            w.frameInfo.frame_index==box.world.frameInfo.frame_index+1);
+        let nextbox = nextworld?nextworld.annotation.findBoxByTrackId(box.obj_track_id):null;
+        let next2world = worldList.find(w=>w.frameInfo.scene==box.world.frameInfo.scene&&
+            w.frameInfo.frame_index==box.world.frameInfo.frame_index+2);
+        let next2box = next2world?next2world.annotation.findBoxByTrackId(box.obj_track_id):null;
+        let last2world = worldList.find(w=>w.frameInfo.scene==box.world.frameInfo.scene&&
+            w.frameInfo.frame_index==box.world.frameInfo.frame_index-2);
+        let last2box = last2world?last2world.annotation.findBoxByTrackId(box.obj_track_id):null;
+        box.velocity = this.editor.get_box_velocity(lastbox,box,nextbox);
+        if(lastbox)
+            lastbox.velocity = this.editor.get_box_velocity(last2box,lastbox,box);
+        if(nextbox)
+            nextbox.velocity = this.editor.get_box_velocity(box,nextbox,next2box);
+
+    }
+
+    doSaveWorldList = function (worldList,async = true)
     {
         if (worldList.length>0){
             if (worldList[0].data.cfg.disableLabels){
@@ -444,7 +460,7 @@ class ConfigUi{
         })
 
         var xhr = new XMLHttpRequest();
-        xhr.open("POST", "/saveworldlist", true);
+        xhr.open("POST", "/saveworldlist_final", async);
         xhr.setRequestHeader('Content-Type', 'application/json');
 
         xhr.onreadystatechange = function () {
@@ -453,70 +469,20 @@ class ConfigUi{
             if (this.status == 200) {
                 worldList.forEach(w=>{
                     w.annotation.resetModified();
-                    if(save_nusc)
-                        window.editor.tracker.update_after_save(w.frameInfo.scene,w.frameInfo.frame,w.annotation.toBoxAnnotations())
                 })
-                if(save_nusc)
-                    window.editor.infoBox.show("Save","Save final result success in this frame")
-                else
-                    window.editor.infoBox.show("Save","Save temporary result success in this frame")
-                if(done)
-                    done();
             }
             else
                 window.editor.infoBox.show("Error", `save failed, status : ${this.status}`);
             // end of state change: it can be after some time (async)
         };
 
-        var b = JSON.stringify({"ann":ann,"save_nusc":save_nusc});
+        var b = JSON.stringify({"ann":ann});
         //console.log(b);
         xhr.send(b);
     }
 
-    load_annotation =async function(scene,frame){
-        if(this.editor.data.cfg.mode == "real" && this.editor.data.cfg.useOfflineTrack){
-            let xhr = new XMLHttpRequest();
-            let _self = this;
-            xhr.onreadystatechange = function (resolve,reject) {
-                if (this.readyState !== 4)
-                    return;
-                if (this.status == 200){
-                    let text = JSON.parse(this.responseText);
-                    let ann = _self.frameInfo.anno_to_boxes(this.responseText,text);
-                    resolve(ann);
-                }
-            };
-            xhr.open('GET', this.editor.data.cfg.tracking_file, true);
-            xhr.send();
-        }
-        else{
-            var xhr = new XMLHttpRequest();
-            // we defined the xhr
-            var _self = this;
-            xhr.onreadystatechange = function () {
-                if (this.readyState != 4) return;
 
-                if (this.status == 200) {
-                    let text = JSON.parse(this.responseText);
-                    let ann = _self.frameInfo.anno_to_boxes(this.responseText,text);
-                    if(_self.data.cfg.mode == "test" && _self.frameInfo.frame_index%_self.data.cfg.testNFrame !=0){
-                        ann.anns=[];
-                        ann.has_file = false;
-                    }
-                    on_load(ann.anns);
-                    _self.world.has_file = ann.has_file;
-                    _self.world.from = ann.from;
 
-                }
-                // end of state change: it can be after some time (async)
-            };
-            if (this.frameInfo.scene.substring(0,4) == 'nusc')
-                xhr.open('GET', "/load_annotation"+"?scene="+this.frameInfo.scene+"&frame="+this.frameInfo.frame_index.toString()+"&mode="+this.data.cfg.mode, true);
-            else
-                xhr.open('GET', "/load_annotation"+"?scene="+this.frameInfo.scene+"&frame="+this.frameInfo.frame+"&mode="+this.data.cfg.mode, true);
-            xhr.send();
-        }
-    };
 
 
 }

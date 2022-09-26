@@ -48977,7 +48977,7 @@ Object.defineProperties( BufferAttribute.prototype, {
 	length: {
 		get: function () {
 
-			console.warn( 'THREE.BufferAttribute: .length has been deprecated. Use .count instead.' );
+			// console.warn( 'THREE.BufferAttribute: .length has been deprecated. Use .count instead.' );
 			return this.array.length;
 
 		}

@@ -62,6 +62,25 @@ class Root(object):
                                 "use_external": False}}, f)
 
     @cherrypy.expose
+    def saveworldlist_final(self):
+        # cl = cherrypy.request.headers['Content-Length']
+        rawbody = cherrypy.request.body.readline().decode('UTF-8')
+        text = json.loads(rawbody)
+        data = text["ann"]
+        for d in data:
+            scene = d["scene"]
+            frame = d["frame"]
+            ann =  [{"frame_token":scene_reader.nusc_info[scene]["frames"][frame]}]
+            ann += d["annotation"]
+            if scene[:4] == "nusc":
+                path = os.path.join(os.getcwd(), "data/final/nusc/" + scene + "/label/")
+            else:
+                path = os.path.join(os.getcwd(), "data/final/" + scene + "/label/")
+            os.makedirs(path, exist_ok=True)
+            with open(path + str(frame) + ".json", 'w') as f:
+                json.dump(ann, f)
+
+    @cherrypy.expose
     def saveworldlist(self):
         # cl = cherrypy.request.headers['Content-Length']
         rawbody = cherrypy.request.body.readline().decode('UTF-8')
@@ -177,6 +196,8 @@ class Root(object):
             for frame in range(num_frame):
                 anns = scene_reader.read_annotations(scene, str(frame),mode)["anns"]
                 for ann in anns:
+                    if "obj_type" not in ann.keys():
+                        continue
                     k = ann["obj_type"] + "-" + str(ann["obj_id"])
                     if all_objs.get(k):
                         all_objs[k]["count"] +=1

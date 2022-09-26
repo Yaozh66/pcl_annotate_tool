@@ -1,6 +1,6 @@
 import * as THREE from './lib/three.module.js';
 import { PCDLoader } from './lib/PCDLoader.js';
-import { matmul, euler_angle_to_rotate_matrix_3by3} from "./util.js"
+import {matmul, euler_angle_to_rotate_matrix_3by3, transpose, euler_angle_to_rotate_matrix} from "./util.js"
 
 function Radar(sceneMeta, world, frameInfo, radarName){
     this.world = world;
@@ -11,7 +11,7 @@ function Radar(sceneMeta, world, frameInfo, radarName){
 
     this.showPointsOnly = false;
     this.showRadarBoxFlag = true;
-    this.cssStyleSelector = this.sceneMeta.calib.radar[this.name].cssstyleselector;
+    this.cssStyleSelector = "radar-points";
     this.color = this.sceneMeta.calib.radar[this.name].color;
     this.velocityScale = 0.3;
 
@@ -39,8 +39,9 @@ function Radar(sceneMeta, world, frameInfo, radarName){
                 if (!this.showPointsOnly)
                     this.elements.arrows.forEach(a=>this.webglScene.add(a));
 
-                if (this.showRadarBoxFlag)
+                if (this.showRadarBoxFlag && this._radar_points_raw.length > 0)
                     this.webglScene.add(this.radar_box);
+
             }
 
             this.loaded = true;
@@ -56,6 +57,8 @@ function Radar(sceneMeta, world, frameInfo, radarName){
     };
 
     this.showRadarBox = function(){
+        if(this._radar_points_raw.length == 0)
+            return;
         this.showRadarBoxFlag = true;
         this.webglScene.add(this.radar_box);
     };
@@ -77,6 +80,8 @@ function Radar(sceneMeta, world, frameInfo, radarName){
     };
 
     this.get_unoffset_radar_points = function(){
+        if(this._radar_points_raw.length == 0)
+            return [];
         if (this.elements){
             let pts = this.elements.points.geometry.getAttribute("position").array;
             return pts.map((p,i)=>p-this.world.coordinatesOffset[i %3]);
@@ -143,6 +148,7 @@ function Radar(sceneMeta, world, frameInfo, radarName){
         loader.load( this.frameInfo.get_radar_path(this.name), 
             //ok
             function ( pcd ) {
+
                 var position = pcd.position;
                 //var velocity = pcd.velocity;
                 // velocity is a vector anchored at position, 
@@ -170,7 +176,7 @@ function Radar(sceneMeta, world, frameInfo, radarName){
                 position = _self.move_radar_points(_self.radar_box);
                 velocity = _self.move_radar_velocity(_self.radar_box);
                 let elements = _self.buildRadarGeometry(position, velocity);
-                
+
                 _self.elements = elements;
                 //_self.points_backup = mesh;
 
@@ -391,6 +397,7 @@ function RadarManager(sceneMeta, world, frameInfo){
             if (!this.radarList[r].preloaded)
                 return false;
         }
+        this.pos_array = this.radarList.reduce((pre, item) => {return [...pre,...(item.get_unoffset_radar_points())]},[]);
         return true;
     };
 
@@ -429,6 +436,28 @@ function RadarManager(sceneMeta, world, frameInfo){
     this.hideRadarBox = function(){
         this.showRadarBoxFlag = false;
         this.radarList.forEach(r=>r.hideRadarBox());
+    }
+
+
+    this._get_points_of_box = function(box){
+        let points_num = this.pos_array.length/3;
+        let num_points_inbox = 0;
+        var r = box.rotation;
+        var trans = transpose(euler_angle_to_rotate_matrix(r, {x:0, y:0, z:0}), 4);
+        for(let i=0;i<points_num;i++){
+            var x = this.pos_array[i*3];
+            var y = this.pos_array[i*3+1];
+            var z = this.pos_array[i*3+2];
+            var p = [x-box.position.x, y-box.position.y, z-box.position.z, 1];
+            var tp = matmul(trans, p, 4);
+            // if indices is provided by caller, don't filter
+            if ((Math.abs(tp[0]) > box.scale.x/2 +0.01)
+                || (Math.abs(tp[1]) > box.scale.y/2 +0.01)
+                || (Math.abs(tp[2]) > box.scale.z/2+0.01) )
+                continue;
+            num_points_inbox++;
+        }
+        return num_points_inbox;
     }
 };
 

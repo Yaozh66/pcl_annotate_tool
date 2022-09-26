@@ -279,8 +279,8 @@ function Lidar(sceneMeta, world, frameInfo){
     };
 
    
-    this.get_all_pionts=function(){
-        return this.points.geometry.getAttribute("position");
+    this.get_all_points=function(){
+        return this.points.geometry.getAttribute("position").array;
     };
     
     this.computeCenter = function(){

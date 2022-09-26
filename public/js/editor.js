@@ -807,7 +807,7 @@ function Editor(editorUi, wrapperUi, editorCfg, data, name="editor"){
         if(this.data.world)
             if(this.data.world.frameInfo.scene == this.editorUi.querySelector("#scene-input").value)
                 return;
-        else{
+            else{
                 let frame = this.editorUi.querySelector("#frame-input").value;
                 if(!frame)
                     return;
@@ -824,9 +824,9 @@ function Editor(editorUi, wrapperUi, editorCfg, data, name="editor"){
                 }
                 if(sceneName.substring(0,4)=="nusc"){
                     if(meta.is_key_frame[Number(frame)-1])
-                        document.getElementById("show-keyframe").innerHTML = "Keyframe&nbsp&nbsp";
+                        document.getElementById("show-keyframe").innerHTML = "Keyframe:"+meta.frames[Number(frame)-1]+"&nbsp&nbsp";
                     else
-                        document.getElementById("show-keyframe").innerHTML = "Nonkeyframe&nbsp&nbsp";
+                        document.getElementById("show-keyframe").innerHTML = "Nonkeyframe:"+meta.frames[Number(frame)-1]+"&nbsp&nbsp";
                 }
                 frame = meta.frames[Number(frame)-1];
                 await this.load_world(sceneName, frame);
@@ -862,9 +862,9 @@ function Editor(editorUi, wrapperUi, editorCfg, data, name="editor"){
         }
         if(sceneName.substring(0,4)=="nusc"){
             if(meta.is_key_frame[Number(frame)-1])
-                document.getElementById("show-keyframe").innerHTML = "Keyframe&nbsp&nbsp";
+                document.getElementById("show-keyframe").innerHTML = "Keyframe:"+meta.frames[Number(frame)-1]+"&nbsp&nbsp";
             else
-                document.getElementById("show-keyframe").innerHTML = "Nonkeyframe&nbsp&nbsp";
+                document.getElementById("show-keyframe").innerHTML = "Nonkeyframe:"+meta.frames[Number(frame)-1]+"&nbsp&nbsp";
         }
         frame = meta.frames[Number(frame)-1];
 
@@ -892,6 +892,8 @@ function Editor(editorUi, wrapperUi, editorCfg, data, name="editor"){
     }
     this.ensurePreloaded = function()
     {
+        if(!this.data.world)
+            return false;
         let worldList = this.data.worldList.filter(w=>w.frameInfo.scene == this.data.world.frameInfo.scene);
         worldList = worldList.sort((a,b)=>a.frameInfo.frame_index - b.frameInfo.frame_index);
         let meta = this.data.get_current_world_scene_meta();
@@ -1863,9 +1865,9 @@ function Editor(editorUi, wrapperUi, editorCfg, data, name="editor"){
             this.imageContextManager.updateCameraList(meta.camera);
         if(sceneName.substring(0,4)=="nusc"){
             if(meta.is_key_frame[0])
-                document.getElementById("show-keyframe").innerHTML = "Keyframe&nbsp&nbsp";
+                document.getElementById("show-keyframe").innerHTML = "Keyframe:"+meta.frames[-1]+"&nbsp&nbsp";
             else
-                document.getElementById("show-keyframe").innerHTML = "Nonkeyframe&nbsp&nbsp";
+                document.getElementById("show-keyframe").innerHTML = "Nonkeyframe:"+meta.frames[-1]+"&nbsp&nbsp";
         }
         let frame = meta.frames[0];
         objIdManager.setCurrentScene(sceneName);
@@ -1891,9 +1893,9 @@ function Editor(editorUi, wrapperUi, editorCfg, data, name="editor"){
             this.imageContextManager.updateCameraList(meta.camera);
         if(sceneName.substring(0,4)=="nusc"){
             if(meta.is_key_frame[0])
-                document.getElementById("show-keyframe").innerHTML = "Keyframe&nbsp&nbsp";
+                document.getElementById("show-keyframe").innerHTML = "Keyframe:"+meta.frames[0]+"&nbsp&nbsp";
             else
-                document.getElementById("show-keyframe").innerHTML = "Nonkeyframe&nbsp&nbsp";
+                document.getElementById("show-keyframe").innerHTML = "Nonkeyframe:"+meta.frames[0]+"&nbsp&nbsp";
         }
         let frame = meta.frames[0];
         objIdManager.setCurrentScene(sceneName);
@@ -1913,16 +1915,39 @@ function Editor(editorUi, wrapperUi, editorCfg, data, name="editor"){
             return;
         }
         this.load_world(scene_meta.scene, scene_meta.frames[frame_index]);
+        if(this.data.world.frameInfo.scene.substring(0,4)=="nusc"){
+            let meta =scene_meta;
+            if(meta.is_key_frame[frame_index])
+                document.getElementById("show-keyframe").innerHTML = "Keyframe:"+meta.frames[frame_index]+"&nbsp&nbsp";
+            else
+                document.getElementById("show-keyframe").innerHTML = "Nonkeyframe:"+meta.frames[frame_index]+"&nbsp&nbsp";
+        }
     };
     this.last_frame = function()
     {
         let scene_meta = this.data.get_current_world_scene_meta();
         this.load_world(scene_meta.scene, scene_meta.frames[scene_meta.frames.length-1]);
+        if(this.data.world.frameInfo.scene.substring(0,4)=="nusc"){
+            let meta =scene_meta;
+            let frame_index = scene_meta.frames.length-1;
+            if(meta.is_key_frame[frame_index])
+                document.getElementById("show-keyframe").innerHTML = "Keyframe:"+meta.frames[frame_index]+"&nbsp&nbsp";
+            else
+                document.getElementById("show-keyframe").innerHTML = "Nonkeyframe:"+meta.frames[frame_index]+"&nbsp&nbsp";
+        }
     };
     this.first_frame = function()
     {
         let scene_meta = this.data.get_current_world_scene_meta();
         this.load_world(scene_meta.scene, scene_meta.frames[0]);
+        if(this.data.world.frameInfo.scene.substring(0,4)=="nusc"){
+            let meta =scene_meta;
+            let frame_index = 0;
+            if(meta.is_key_frame[frame_index])
+                document.getElementById("show-keyframe").innerHTML = "Keyframe:"+meta.frames[frame_index]+"&nbsp&nbsp";
+            else
+                document.getElementById("show-keyframe").innerHTML = "Nonkeyframe:"+meta.frames[frame_index]+"&nbsp&nbsp";
+        }
     };
 
     this.next_frame= function(){
@@ -1937,6 +1962,13 @@ function Editor(editorUi, wrapperUi, editorCfg, data, name="editor"){
             return;
         }
         this.load_world(scene_meta.scene, scene_meta.frames[frame_index]);
+        if(this.data.world.frameInfo.scene.substring(0,4)=="nusc"){
+            let meta =scene_meta;
+            if(meta.is_key_frame[frame_index])
+                document.getElementById("show-keyframe").innerHTML = "Keyframe:"+meta.frames[frame_index]+"&nbsp&nbsp";
+            else
+                document.getElementById("show-keyframe").innerHTML = "Nonkeyframe:"+meta.frames[frame_index]+"&nbsp&nbsp";
+        }
         // console.log(scene_meta.frames[frame_index]);
     };
 
