@@ -319,9 +319,9 @@ dynamic set obj-type css has higher priority than this one.
 }
 
 .lidar-points{
-	stroke: rgba(212, 11, 234, 0.67);
+	stroke: #00ff88;
 	stroke-width: 2px;
-	fill: rgba(212, 11, 234, 0.67);
+	fill: #00ff88;
 }
 
 .radar-points{

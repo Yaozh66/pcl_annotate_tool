@@ -633,7 +633,8 @@ function BoxOp(){
                     rotation:{x:globalrot.x,y:globalrot.y,z:globalrot.z}};
 
                 window.editor.change_box_velocity(boxList[i]);
-                window.editor.tracker.update_box(boxList[i].world.frameInfo.frame,boxList[i],"modify");
+                if(window.editor.tracker)
+                    window.editor.tracker.update_box(boxList[i].world.frameInfo.frame,boxList[i],"modify");
                 boxList[i].world.annotation.setModified();
             }
         }
@@ -678,7 +679,8 @@ function BoxOp(){
 
             applyworld_box.globalpsr = {position:anns.position, rotation:anns.rotation};
             window.editor.change_box_velocity(applyworld_box);
-            window.editor.tracker.update_box(applyworld_box.world.frameInfo.frame,applyworld_box,"modify");
+            if(window.editor.tracker)
+                window.editor.tracker.update_box(applyworld_box.world.frameInfo.frame,applyworld_box,"modify");
 
 
             applyworld_box.annotator="c";
@@ -760,7 +762,8 @@ function BoxOp(){
                 boxList[i].globalpsr = {position:{x:globalpos.x,y:globalpos.y,z:globalpos.z},
                     rotation:{x:globalrot.x,y:globalrot.y,z:globalrot.z}};
                 window.editor.change_box_velocity(boxList[i]);
-                window.editor.tracker.update_box(boxList[i].world.frameInfo.frame,boxList[i],"modify");
+                if(window.editor.tracker)
+                    window.editor.tracker.update_box(boxList[i].world.frameInfo.frame,boxList[i],"modify");
 
                 boxList[i].annotator="a";
             }

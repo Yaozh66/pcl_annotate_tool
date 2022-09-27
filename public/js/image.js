@@ -543,7 +543,7 @@ class ImageContext extends MovableView{
 
             // there may be none after projecting
             if (ptsOnImg && ptsOnImg.length>0){
-                let pts_svg = this.points_to_svg(ptsOnImg, trans_ratio,"lidar-points",2.5);
+                let pts_svg = this.points_to_svg(ptsOnImg, trans_ratio,"lidar-points",0.5);
                 svg.appendChild(pts_svg);
             }
         }

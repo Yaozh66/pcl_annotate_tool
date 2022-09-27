@@ -10,7 +10,6 @@ import algos.track
 import os
 import sys
 import scene_reader2 as scene_reader
-from tools import check_labels as check
 from tools.my_nuscenes_converter import SUSTECH_det_to_nusc_box, nusc_det_to_nusc_box, nusc_box_to_SUSTECH
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))

@@ -160,7 +160,8 @@ function AutoAdjust(boxOp, mouse, header){
                     rotation:{x:globalrot.x,y:globalrot.y,z:globalrot.z}};
 
                 window.editor.change_box_velocity(existedBox);
-                window.editor.tracker.update_box(existedBox.world.frameInfo.frame,existedBox,"modify");
+                if(window.editor.tracker)
+                    window.editor.tracker.update_box(existedBox.world.frameInfo.frame,existedBox,"modify");
                
 
                 logger.log(`modified box in ${w}`);
@@ -255,7 +256,8 @@ function AutoAdjust(boxOp, mouse, header){
                         rotation:{x:globalrot.x,y:globalrot.y,z:globalrot.z}};
 
                     window.editor.change_box_velocity(existedBox);
-                    window.editor.tracker.update_box(existedBox.world.frameInfo.frame,existedBox,"modify");
+                    if(window.editor.tracker)
+                        window.editor.tracker.update_box(existedBox.world.frameInfo.frame,existedBox,"modify");
 
                     existedBox.follows = {
                         obj_track_id: refObj.obj_track_id,
@@ -320,7 +322,8 @@ function AutoAdjust(boxOp, mouse, header){
                 rotation:{x:globalrot.x,y:globalrot.y,z:globalrot.z}};
 
             window.editor.change_box_velocity(fb);
-            window.editor.tracker.update_box(fb.world.frameInfo.frame,fb,"modify");
+            if(window.editor.tracker)
+                window.editor.tracker.update_box(fb.world.frameInfo.frame,fb,"modify");
         });
     };
 }

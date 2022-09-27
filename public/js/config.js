@@ -3,7 +3,8 @@ class Config{
 
     //dataCfg = {
     // disableLabels = true;
-    mode = "real";//["normal","test","real"]
+    mode = "pre_track";//["normal","test","real","pre_track"]
+    online_track = false;
     testNFrame = 100;
     enablePreload = true;
     color_points = "mono";
@@ -48,8 +49,7 @@ class Config{
     //Tracking algo Param
     onlyuseOfflineTrack = true;
     thresh = 0.2;
-    detection_file = "/data/SUSTech_data_det_infos.json"
-    tracking_file = "/data/SUSTech_data_track_infos.json"
+    detection_file = "/data/train/SUSTech_data_det_infos_train.json"
     num_scene = 10;
     
     ///editorCfg

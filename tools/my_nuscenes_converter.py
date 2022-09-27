@@ -89,8 +89,9 @@ def create_nuscenes_infos(root_path,
         version (str): Version of the data.
             Default: 'v1.0-trainval'
     """
-    from my_nuscenes.nuscenes import NuScenes
+    from tools.my_nuscenes.nuscenes import NuScenes
     nusc = NuScenes(version=version, dataroot=root_path, verbose=True)
+    from tools.my_nuscenes.utils import splits
 
     if version == "v1.0-mini":
         info_path = osp.join(root_path, 'SUSTech_data_infos.pkl')
@@ -114,41 +115,62 @@ def create_nuscenes_infos(root_path,
             with open(info_path, 'rb') as f:
                 train_nusc_infos1 = pickle.load(f)
 
-        #     det_infos = convert_detection_file(train_nusc_infos1)
+        #     det_infos = convert_detection_file(train_nusc_infos1,"/home/yaozh/WebstormProjects/my_pcl_annotate/infos_trainval_10sweeps_withvelo_filter_True.json")
         #     info_path = osp.joinoutput_val(root_path, 'SUSTech_data_det_infos.json')
         #     with open(info_path, 'w') as f:
         #         json.dump(det_infos, f)
 
-        #     track_infos = convert_tracking_file(train_nusc_infos1)
+        #     track_infos = convert_tracking_file(train_nusc_infos1,"/home/yaozh/WebstormProjects/my_pcl_annotate/outputs/output_mini/tracking_result/tracking_result.json")
         #     info_path = osp.join(root_path, 'SUSTech_data_track_infos.json')
         #     with open(info_path, 'w') as f:
         #         json.dump(track_infos, f)
 
     elif version == "v1.0-trainval":
-        info_path = osp.join(root_path, 'SUSTech_data_infos.pkl')
-        if not osp.exists(info_path):
-            train_scenes = nusc.scene
-            train_nusc_infos = _fill_trainval_infos(nusc, train_scenes)
-            metadata = dict(version=version)
-            data = dict(infos=train_nusc_infos, metadata=metadata)
-            with open(info_path, 'wb') as f:
-                pickle.dump(data, f)
-        else:
-            with open(info_path, 'rb') as f:
-                train_nusc_infos = pickle.load(f)["infos"]
-        #
-        info_path = osp.join(root_path, 'SUSTech_data_infos_real.pkl')
-        if not osp.exists(info_path):
-            train_nusc_infos1 = _fill_trainval_infos_SUSTECH(nusc, train_nusc_infos)
-            with open(info_path, 'wb') as f:
-                pickle.dump(train_nusc_infos1, f)
-        else:
-            with open(info_path, 'rb') as f:
-                train_nusc_infos1 = pickle.load(f)
+        nusc_scenes = nusc.scene
+        for dataset in ["train", "val"]:
+            info_path = osp.join(root_path, 'SUSTech_data_infos_' + dataset + '.pkl')
+            if dataset == "train":
+                scenes = list(filter(lambda x: x["name"] in splits.train, nusc_scenes))
+            else:
+                scenes = list(filter(lambda x: x["name"] in splits.val, nusc_scenes))
+            print('sceneNums: {}'.format(len(scenes)))
+            if not osp.exists(info_path):
+                train_nusc_infos = _fill_trainval_infos(nusc, scenes)
+                metadata = dict(version=version)
+                data = dict(infos=train_nusc_infos, metadata=metadata)
+                with open(info_path, 'wb') as f:
+                    pickle.dump(data, f)
+            else:
+                with open(info_path, 'rb') as f:
+                    train_nusc_infos = pickle.load(f)["infos"]
 
-def convert_tracking_file(sustech_info):
-    with open("/home/yaozh/WebstormProjects/my_pcl_annotate/outputs/output_mini/tracking_result/tracking_result.json",
-              'r') as f:
+            info_path = osp.join(root_path, 'SUSTech_data_infos' + dataset + '_real.pkl')
+            if not osp.exists(info_path):
+                train_nusc_infos1 = _fill_trainval_infos_SUSTECH(nusc, train_nusc_infos)
+                with open(info_path, 'wb') as f:
+                    pickle.dump(train_nusc_infos1, f)
+            else:
+                with open(info_path, 'rb') as f:
+                    train_nusc_infos1 = pickle.load(f)
+
+            output_dir = "/home/yaozh/WebstormProjects/pcl_annotate_tool/outputs/output_" + dataset
+            if dataset != "train":
+                det_infos = convert_detection_file(train_nusc_infos1, os.path.join(output_dir, "det.json"))
+                info_path = osp.join(root_path, 'SUSTech_data_det_infos_' + dataset + '.json')
+                with open(info_path, 'w') as f:
+                    json.dump(det_infos, f)
+
+            track_infos = convert_tracking_file(train_nusc_infos1,
+                                                os.path.join(output_dir + "/tracking_result/", "tracking_result.json"))
+            info_path = osp.join(root_path, 'SUSTech_data_track_infos' + dataset + '.json')
+            with open(info_path, 'w') as f:
+                json.dump(track_infos, f)
+
+        os.system("poweroff")
+
+
+def convert_tracking_file(sustech_info, track_path):
+    with open(track_path, 'r') as f:
         det_res = json.load(f)["results"]
         res = {}
         for frame_token, det in tqdm(det_res.items()):
@@ -184,9 +206,8 @@ def convert_tracking_file(sustech_info):
         return res
 
 
-def convert_detection_file(sustech_info):
-    with open("/home/yaozh/WebstormProjects/my_pcl_annotate/infos_trainval_10sweeps_withvelo_filter_True.json",
-              'r') as f:
+def convert_detection_file(sustech_info, detPath):
+    with open(detPath, 'r') as f:
         det_res = json.load(f)["results"]
     res = {}
     for frame_token, det in tqdm(det_res.items()):
@@ -223,6 +244,7 @@ def convert_detection_file(sustech_info):
 
 def _fill_trainval_infos_SUSTECH(nusc, nusc_info):
     SUSTECH_info = {}
+    version = "v1.0-mini" if nusc.version == "v1.0-mini" else "v1.0-train-val"
     global2new_global = np.array([[-1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
     for i, scene_info in tqdm(enumerate(nusc_info)):
         scene = {
@@ -292,7 +314,10 @@ def _fill_trainval_infos_SUSTECH(nusc, nusc_info):
             scene["frames"].append(info["token"])
             scene["timestamp"].append(info["timestamp"])
             scene["is_key_frame"].append(info["is_key_frame"])
-            scene["lidar_path"].append(info["lidar_path"][info["lidar_path"].rfind(nusc.version):])
+            scene["lidar_path"].append(info["lidar_path"][info["lidar_path"].rfind(version):])
+            for key, value in info["radar_path"].items():
+                info["radar_path"][key] = value[value.rfind(version):]
+
             scene["radar_path"].append(info["radar_path"])
             scene["calib"]["radar"] = info["radar_para"]
             if info == scene_info["frames"][0]:
@@ -305,7 +330,7 @@ def _fill_trainval_infos_SUSTECH(nusc, nusc_info):
 
             for cam in scene["camera"]:
                 scene["camera_path"][cam].append(
-                    info["cams"][cam]['data_path'][info["cams"][cam]['data_path'].rfind(nusc.version):])
+                    info["cams"][cam]['data_path'][info["cams"][cam]['data_path'].rfind(version):])
         scene["boxtype"] = "psr"
         scene["obj_stats"] = [x for x in all_objs.values()]
 
@@ -391,7 +416,7 @@ def _fill_trainval_infos(nusc, train_scenes, nsweeps=10, for_detection=False, fi
             for i, radar_name in enumerate(radar_names):
                 radar_token = sample['data'][radar_name]
                 radar_path, _, _ = nusc.get_sample_data(radar_token)
-                radar_paths[radar_name] = radar_path[radar_path.rfind(nusc.version):]
+                radar_paths[radar_name] = radar_path
                 radar_info = obtain_sensor2top(nusc, radar_token, l2e_t, l2e_r_mat, e2g_t, e2g_r_mat, radar_name)
                 radar_para = {"cssStyleSelector": "radar-points", "color": radar_colors[i],
                               "translation": radar_info["sensor2lidar_translation"].tolist(),
@@ -700,12 +725,12 @@ def _global_nusc_box_to_lidar(nusc_info, boxes, scene_name, frame_index):
 
 
 def obtain_sensor2top_PETR(nusc,
-                      sensor_token,
-                      l2e_t,
-                      l2e_r_mat,
-                      e2g_t,
-                      e2g_r_mat,
-                      sensor_type='lidar'):
+                           sensor_token,
+                           l2e_t,
+                           l2e_r_mat,
+                           e2g_t,
+                           e2g_r_mat,
+                           sensor_type='lidar'):
     """Obtain the info with RT matric from general sensor to Top LiDAR.
 
     Args:
@@ -750,36 +775,34 @@ def obtain_sensor2top_PETR(nusc,
     l2e_r_s_mat = Quaternion(l2e_r_s).rotation_matrix
     e2g_r_s_mat = Quaternion(e2g_r_s).rotation_matrix
     R = (l2e_r_s_mat.T @ e2g_r_s_mat.T) @ (
-        np.linalg.inv(e2g_r_mat).T @ np.linalg.inv(l2e_r_mat).T)
+            np.linalg.inv(e2g_r_mat).T @ np.linalg.inv(l2e_r_mat).T)
     T = (l2e_t_s @ e2g_r_s_mat.T + e2g_t_s) @ (
-        np.linalg.inv(e2g_r_mat).T @ np.linalg.inv(l2e_r_mat).T)
+            np.linalg.inv(e2g_r_mat).T @ np.linalg.inv(l2e_r_mat).T)
     T -= e2g_t @ (np.linalg.inv(e2g_r_mat).T @ np.linalg.inv(l2e_r_mat).T
                   ) + l2e_t @ np.linalg.inv(l2e_r_mat).T
     sweep['sensor2lidar_rotation'] = R.T  # points @ R.T + T
     sweep['sensor2lidar_translation'] = T
     return sweep
 
+
 def _fill_trainval_infos_from_SUSTECH(nusc,
-                                     train_scenes,
-                                     val_scenes,
-                                     test=False,
-                                     datadir = None,
-                                     max_sweeps=10):
-    train_nusc_infos = []
-    val_nusc_infos = []
+                                      datadir=None,
+                                      max_sweeps=10):
+    nusc_infos = []
     for sustech_scene_name in os.listdir(datadir):
-        for sample_file in os.listdir(os.path.join(datadir,sustech_scene_name,"label")):
-            with open (sample_file,'r') as f:
+        for sample_file in os.listdir(os.path.join(datadir, sustech_scene_name, "label")):
+            with open(sample_file, 'r') as f:
                 sampledatas = json.load(f)
             frame_token = sampledatas[0]["frame_token"]
-            sample = sd_rec = nusc.get('sample', frame_token)
+            sample = nusc.get('sample', frame_token)
             lidar_token = sample['data']['LIDAR_TOP']
             sd_rec = nusc.get('sample_data', sample['data']['LIDAR_TOP'])
             cs_record = nusc.get('calibrated_sensor',
                                  sd_rec['calibrated_sensor_token'])
             pose_record = nusc.get('ego_pose', sd_rec['ego_pose_token'])
             lidar_path, _, _ = nusc.get_sample_data(lidar_token)
-            mmcv.check_file_exist(lidar_path)
+            if not osp.isfile(lidar_path):
+                raise FileNotFoundError('file "{}" does not exist'.format(lidar_path))
             info = {
                 'lidar_token': lidar_token,
                 'lidar_path': lidar_path,
@@ -812,7 +835,7 @@ def _fill_trainval_infos_from_SUSTECH(nusc,
                 cam_token = sample['data'][cam]
                 cam_path, _, cam_intrinsic = nusc.get_sample_data(cam_token)
                 cam_info = obtain_sensor2top_PETR(nusc, cam_token, l2e_t, l2e_r_mat,
-                                             e2g_t, e2g_r_mat, cam)
+                                                  e2g_t, e2g_r_mat, cam)
                 cam_info.update(cam_intrinsic=cam_intrinsic)
                 info['cams'].update({cam: cam_info})
 
@@ -821,66 +844,201 @@ def _fill_trainval_infos_from_SUSTECH(nusc,
             while len(sweeps) < max_sweeps:
                 if not sd_rec['prev'] == '':
                     sweep = obtain_sensor2top_PETR(nusc, sd_rec['prev'], l2e_t,
-                                              l2e_r_mat, e2g_t, e2g_r_mat, 'lidar')
+                                                   l2e_r_mat, e2g_t, e2g_r_mat, 'lidar')
                     sweeps.append(sweep)
                     sd_rec = nusc.get('sample_data', sd_rec['prev'])
                 else:
                     break
             info['sweeps'] = sweeps
-            if not test:
-                boxes = sampledatas[1:]
-                locs = np.array([box["psr"]["position"][axis] for axis in ["x","y","z"] for box in boxes]).reshape(-1, 3)
-                dims = np.array([box["psr"]["scale"][axis] for axis in ["y", "x", "z"] for box in boxes]).reshape(-1, 3)
-                rots = np.array([box["psr"]["rotation"][axis] for axis in ["z", "y", "x"] for box in boxes]).reshape(-1, 3)
-                velocity = np.array([box["velocity"] for box in boxes])
-#                 valid_flag =
+            boxes = sampledatas[1:]
+            locs = np.array([box["psr"]["position"][axis] for axis in ["x", "y", "z"] for box in boxes]).reshape(-1, 3)
+            dims = np.array([box["psr"]["scale"][axis] for axis in ["y", "x", "z"] for box in boxes]).reshape(-1, 3)
+            rots = np.array([box["psr"]["rotation"][axis] for axis in ["z"] for box in boxes]).reshape(-1, 1)
+            velocity = np.array([box["velocity"] for box in boxes])
+            valid_flag = np.array([(box['num_lidar_pts'] + box['num_radar_pts']) > 0 for box in boxes],
+                                  dtype=bool).reshape(-1)
+            # convert velo from global to lidar
+            for i in range(len(boxes)):
+                velo = np.array([*velocity[i], 0.0])
+                velo = velo @ np.linalg.inv(e2g_r_mat).T @ np.linalg.inv(
+                    l2e_r_mat).T
+                velocity[i] = velo[:2]
+            names = np.array([b.obj_type for b in boxes])
+            gt_boxes = np.concatenate([locs, dims, -rots - np.pi / 2], axis=1)
+            info['gt_boxes'] = gt_boxes
+            info['gt_names'] = names
+            info['gt_velocity'] = velocity.reshape(-1, 2)
+            info['num_lidar_pts'] = np.array([box['num_lidar_pts'] for box in boxes])
+            info['num_radar_pts'] = np.array([box['num_radar_pts'] for box in boxes])
+            info['valid_flag'] = valid_flag
+            nusc_infos.append(info)
+
+    return nusc_infos
 
 
+def get_available_scenes(nusc):
+    """Get available scenes from the input nuscenes class.
+
+    Given the raw data, get the information of available scenes for
+    further info generation.
+
+    Args:
+        nusc (class): Dataset class in the nuScenes dataset.
+
+    Returns:
+        available_scenes (list[dict]): List of basic information for the
+            available scenes.
+    """
+    available_scenes = []
+    print('total scene num: {}'.format(len(nusc.scene)))
+    for scene in nusc.scene:
+        scene_token = scene['token']
+        scene_rec = nusc.get('scene', scene_token)
+        sample_rec = nusc.get('sample', scene_rec['first_sample_token'])
+        sd_rec = nusc.get('sample_data', sample_rec['data']['LIDAR_TOP'])
+        has_more_frames = True
+        scene_not_exist = False
+        while has_more_frames:
+            lidar_path, boxes, _ = nusc.get_sample_data(sd_rec['token'])
+            lidar_path = str(lidar_path)
+            if os.getcwd() in lidar_path:
+                # path from lyftdataset is absolute path
+                lidar_path = lidar_path.split(f'{os.getcwd()}/')[-1]
+                # relative path
+            if not os.path.isfile(lidar_path):
+                scene_not_exist = True
+                break
+            else:
+                break
+        if scene_not_exist:
+            continue
+        available_scenes.append(scene)
+    print('exist scene num: {}'.format(len(available_scenes)))
+    return available_scenes
 
 
+def add_frame(data_root, nusc, sample_data, e2g_t, l2e_t, l2e_r_mat, e2g_r_mat):
+    sweep_cam = dict()
+    sweep_cam['is_key_frame'] = sample_data['is_key_frame']
+    sweep_cam['data_path'] = os.path.join(data_root, sample_data['filename'])
+    sweep_cam['type'] = 'camera'
+    sweep_cam['timestamp'] = sample_data['timestamp']
+    sweep_cam['sample_data_token'] = sample_data['sample_token']
+    pose_record = nusc.get('ego_pose', sample_data['ego_pose_token'])
+    calibrated_sensor_record = nusc.get('calibrated_sensor', sample_data['calibrated_sensor_token'])
+
+    sweep_cam['ego2global_translation'] = pose_record['translation']
+    sweep_cam['ego2global_rotation'] = pose_record['rotation']
+    sweep_cam['sensor2ego_translation'] = calibrated_sensor_record['translation']
+    sweep_cam['sensor2ego_rotation'] = calibrated_sensor_record['rotation']
+    sweep_cam['cam_intrinsic'] = calibrated_sensor_record['camera_intrinsic']
+
+    l2e_r_s = sweep_cam['sensor2ego_rotation']
+    l2e_t_s = sweep_cam['sensor2ego_translation']
+    e2g_r_s = sweep_cam['ego2global_rotation']
+    e2g_t_s = sweep_cam['ego2global_translation']
+
+    l2e_r_s_mat = Quaternion(l2e_r_s).rotation_matrix
+    e2g_r_s_mat = Quaternion(e2g_r_s).rotation_matrix
+    R = (l2e_r_s_mat.T @ e2g_r_s_mat.T) @ (
+            np.linalg.inv(e2g_r_mat).T @ np.linalg.inv(l2e_r_mat).T)
+    T = (l2e_t_s @ e2g_r_s_mat.T + e2g_t_s) @ (
+            np.linalg.inv(e2g_r_mat).T @ np.linalg.inv(l2e_r_mat).T)
+    T -= e2g_t @ (np.linalg.inv(e2g_r_mat).T @ np.linalg.inv(l2e_r_mat).T
+                  ) + l2e_t @ np.linalg.inv(l2e_r_mat).T
+    sweep_cam['sensor2lidar_rotation'] = R.T  # points @ R.T + T
+    sweep_cam['sensor2lidar_translation'] = T
+
+    lidar2cam_r = np.linalg.inv(sweep_cam['sensor2lidar_rotation'])
+    lidar2cam_t = sweep_cam['sensor2lidar_translation'] @ lidar2cam_r.T
+    lidar2cam_rt = np.eye(4)
+    lidar2cam_rt[:3, :3] = lidar2cam_r.T
+    lidar2cam_rt[3, :3] = -lidar2cam_t
+    intrinsic = np.array(sweep_cam['cam_intrinsic'])
+    viewpad = np.eye(4)
+    viewpad[:intrinsic.shape[0], :intrinsic.shape[1]] = intrinsic
+    lidar2img_rt = (viewpad @ lidar2cam_rt.T)
+    sweep_cam['intrinsics'] = viewpad.astype(np.float32)
+    sweep_cam['extrinsics'] = lidar2cam_rt.astype(np.float32)
+    print(lidar2cam_rt)
+    sweep_cam['lidar2img'] = lidar2img_rt.astype(np.float32)
+
+    pop_keys = ['ego2global_translation', 'ego2global_rotation', 'sensor2ego_translation', 'sensor2ego_rotation',
+                'cam_intrinsic']
+    [sweep_cam.pop(k) for k in pop_keys]
+    return sweep_cam
 
 
 def convert_SUSTECH_toPETR(root_path,
-                          info_prefix,
-                          datadir,
-                          version='v1.0-trainval',
-                          max_sweeps=10):
-    from my_nuscenes.nuscenes import NuScenes
+                           datadir,
+                           dataset="train",
+                           version='v1.0-trainval',
+                           max_sweeps=10):
+    num_prev = 5  ###nummber of previous key frames
+    num_sweep = 5  ###nummber of sweep frames between two key frame
+    from tools.my_nuscenes.nuscenes import NuScenes
     nusc = NuScenes(version=version, dataroot=root_path, verbose=True)
-    from nuscenes.utils import splits
-    available_vers = ['v1.0-trainval', 'v1.0-test', 'v1.0-mini']
-    assert version in available_vers
-    if version == 'v1.0-trainval':
-        train_scenes = splits.train
-        val_scenes = splits.val
-    elif version == 'v1.0-test':
-        train_scenes = splits.test
-        val_scenes = []
-    elif version == 'v1.0-mini':
-        train_scenes = splits.mini_train
-        val_scenes = splits.mini_val
-    else:
-        raise ValueError('unknown')
-    # filter existing scenes.
-    available_scenes = get_available_scenes(nusc)
-    available_scene_names = [s['name'] for s in available_scenes]
-    train_scenes = list(
-        filter(lambda x: x in available_scene_names, train_scenes))
-    val_scenes = list(filter(lambda x: x in available_scene_names, val_scenes))
-    train_scenes = set([
-        available_scenes[available_scene_names.index(s)]['token']
-        for s in train_scenes
-    ])
-    val_scenes = set([
-        available_scenes[available_scene_names.index(s)]['token']
-        for s in val_scenes
-    ])
+    sensors = ['CAM_FRONT', 'CAM_FRONT_RIGHT', 'CAM_BACK_RIGHT', 'CAM_BACK', 'CAM_BACK_LEFT', 'CAM_FRONT_LEFT']
 
-    test = 'test' in version
-    if test:
-        print('test scene: {}'.format(len(train_scenes)))
-    else:
-        print('train scene: {}, val scene: {}'.format(
-            len(train_scenes), len(val_scenes)))
+    info_path = osp.join(root_path, 'From_SUSTECH_infos_' + dataset + '.pkl')
 
-    train_nusc_infos, val_nusc_infos = _fill_trainval_infos_from_SUSTECH(nusc,train_scenes, val_scenes, test,datadir, max_sweeps=max_sweeps)
+    if not osp.exists(info_path):
+        nusc_infos = _fill_trainval_infos_from_SUSTECH(nusc, datadir, max_sweeps=max_sweeps)
+        metadata = dict(version=version)
+        key_infos = dict(infos=nusc_infos, metadata=metadata)
+        with open(info_path) as f:
+            pickle.dump(key_infos, f)
+    else:
+        with open(info_path, 'rb') as f:
+            key_infos = pickle.load(f)
+
+    print("Stage 1 Create Finished")
+
+    for current_id in tqdm.tqdm(range(len(key_infos['infos']))):
+        e2g_t = key_infos['infos'][current_id]['ego2global_translation']
+        e2g_r = key_infos['infos'][current_id]['ego2global_rotation']
+        l2e_t = key_infos['infos'][current_id]['lidar2ego_translation']
+        l2e_r = key_infos['infos'][current_id]['lidar2ego_rotation']
+        l2e_r_mat = Quaternion(l2e_r).rotation_matrix
+        e2g_r_mat = Quaternion(e2g_r).rotation_matrix
+
+        sample = nusc.get('sample', key_infos['infos'][current_id]['token'])
+        current_cams = dict()  ###cam of current key frame
+        for cam in sensors:
+            current_cams[cam] = nusc.get('sample_data', sample['data'][cam])
+
+        sweep_lists = []
+        for i in range(num_prev):  #### previous sweep frame
+            ### justify the first frame of a scene
+            if sample['prev'] == '':
+                break
+            ###add sweep frame between two key frame
+            for j in range(num_sweep):
+                sweep_cams = dict()
+                for cam in sensors:
+                    if current_cams[cam]['prev'] == '':
+                        sweep_cams = sweep_lists[-1]
+                        break
+                    sample_data = nusc.get('sample_data', current_cams[cam][
+                        'prev'])  ##{'token': '8e25cfcd8f724bb7bbce69bff042a56f', 'sample_token': '02fd302178dd44568ae305320ea24054', 'ego_pose_token': '8e25cfcd8f724bb7bbce69bff042a56f', 'calibrated_sensor_token': '2fde3d3376ea42a8a561df595e001cc7', 'timestamp': 1533153859904816, 'fileformat': 'jpg', 'is_key_frame': True, 'height': 900, 'width': 1600, 'filename': 'samples/CAM_FRONT_LEFT/n008-2018-08-01-16-03-27-0400__CAM_FRONT_LEFT__1533153859904816.jpg', 'prev': '5d82f148ba8947579a6d7647ac73a9d6', 'next': 'cb0a1671873647faba28916a88b14574', 'sensor_modality': 'camera', 'channel': 'CAM_FRONT_LEFT'}
+                    sweep_cam = add_frame(root_path, nusc, sample_data, e2g_t, l2e_t, l2e_r_mat, e2g_r_mat)
+                    current_cams[cam] = sample_data
+                    sweep_cams[cam] = sweep_cam
+                sweep_lists.append(sweep_cams)
+            ###add previous key frame
+            sample = nusc.get('sample', sample['prev'])
+            sweep_cams = dict()
+            for cam in sensors:
+                sample_data = nusc.get('sample_data', sample['data'][cam])
+                sweep_cam = add_frame(root_path, nusc, sample_data, e2g_t, l2e_t, l2e_r_mat, e2g_r_mat)
+                current_cams[cam] = sample_data
+                sweep_cams[cam] = sweep_cam
+            sweep_lists.append(sweep_cams)
+        key_infos['infos'][current_id]['sweeps'] = sweep_lists
+
+    info_path = os.path.join(root_path, 'mmdet3d_nuscenes_30f_infos_fromSUSTECH_{}.pkl'.format(dataset))
+    with open(info_path, 'wb') as f:
+        pickle.dump(key_infos, f)
+
+
+# create_nuscenes_infos("/home/yaozh/data/nuscenes/nuscenes/v1.0-train-val", version='v1.0-trainval')

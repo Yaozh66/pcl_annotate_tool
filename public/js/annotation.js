@@ -324,7 +324,8 @@ function Annotation(sceneMeta, world, frameInfo){
         mesh.world = this.world;
         if(!dontcalc_vel){
             window.editor.change_box_velocity(mesh);
-            window.editor.tracker.update_box(this.world.frameInfo.frame,mesh,"modify");
+            if(window.editor.tracker)
+                window.editor.tracker.update_box(this.world.frameInfo.frame,mesh,"modify");
         }
         return mesh;
     };
@@ -436,23 +437,6 @@ function Annotation(sceneMeta, world, frameInfo){
         if (this.data.cfg.disableLabels)
             on_load([]);
         else {
-            if (this.data.cfg.mode == "real" && this.data.cfg.onlyuseOfflineTrack) {
-                let xhr = new XMLHttpRequest();
-                let _self = this;
-                xhr.onreadystatechange = function () {
-                    if (this.readyState !== 4)
-                        return;
-                    if (this.status == 200) {
-                        let text = JSON.parse(this.responseText);
-                        let ann = _self.frameInfo.anno_to_boxes(this.responseText, text);
-                        on_load(ann[_self.frameInfo.frame]);
-                        _self.world.from = "track";
-                    }
-                };
-                xhr.open('GET', this.data.cfg.tracking_file, true);
-                xhr.send();
-            }
-            else{
                 var xhr = new XMLHttpRequest();
                 // we defined the xhr
                 var _self = this;
@@ -479,7 +463,7 @@ function Annotation(sceneMeta, world, frameInfo){
                     xhr.open('GET', "/load_annotation"+"?scene="+this.frameInfo.scene+"&frame="+this.frameInfo.frame+"&mode="+this.data.cfg.mode, true);
                 xhr.send();
             }
-        }
+        // }
 
     };
 
@@ -517,7 +501,8 @@ function Annotation(sceneMeta, world, frameInfo){
                     old_box.globalpsr = {position:{x:globalpos.x,y:globalpos.y,z:globalpos.z},
                         rotation:{x:globalrot.x,y:globalrot.y,z:globalrot.z}};
                     window.editor.change_box_velocity(old_box);
-                    window.editor.tracker.update_box(old_box.world.frameInfo.frame,old_box,"modify");
+                    if(window.editor.tracker)
+                        window.editor.tracker.update_box(old_box.world.frameInfo.frame,old_box,"modify");
                 }else{
                     // not found
                     let box=this.createOneBoxByAnn(nb);

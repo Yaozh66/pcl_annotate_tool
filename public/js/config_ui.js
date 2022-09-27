@@ -52,31 +52,20 @@ class ConfigUi{
             return true;
         },
         "#cfg-finish-all-scenes":async (event)=>{
-            const sleep = (delay) => new Promise((resolve) => setTimeout(resolve, delay))
-            let scene_names = await this.get_all_scene();
+            // const sleep = (delay) => new Promise((resolve) => setTimeout(resolve, delay))
+            // let scene_names = await this.get_all_scene();
+            let scene_names = [
+                "nusc367",
+            ];
             for(let i=0;i<scene_names.length;i++){
                 let sceneName = scene_names[i];
-                let meta = this.editor.data.getMetaBySceneName(sceneName);
-                if(!meta)
-                    meta =await this.editor.data.readSceneMetaData(sceneName)
-                let numLoaded = 0;
-                let worldlist= [];
-                for(let j=0;j<meta.frames.length;j++){
-                    let frame = meta.frames[j];
-                    let [x,y,z] = this.editor.data.allocateOffset();
-                    let world = new World(this.editor.data, sceneName, frame, [1000.0*x, 1000.0*y, 1000.0*z], ()=>{
-                        numLoaded++;
-                        worldlist.push(world);
-                        if(numLoaded==meta.frames.length){
-                            console.log(sceneName+" save this scene success");
-                            worldlist.forEach(w=>{
-                                w.annotation.boxes.forEach(box=> this.change_box_velocity(box,worldlist));
-                            });
-                            this.doSaveWorldList(worldlist,true);
-                        }
-                    });
+                let flag = await this.processScene(sceneName);
+                if(flag && flag != "fail")
+                    console.log("Save "+sceneName+" Success");
+                else{
+                    console.log("Save "+sceneName+" Failed");
+                    break;
                 }
-                await  sleep(3600);
             }
             return true;
         },
@@ -479,6 +468,36 @@ class ConfigUi{
         var b = JSON.stringify({"ann":ann});
         //console.log(b);
         xhr.send(b);
+    }
+
+    processScene =async function (sceneName){
+        let meta = this.editor.data.getMetaBySceneName(sceneName);
+        if(!meta)
+            meta =await this.editor.data.readSceneMetaData(sceneName)
+        let _self = this;
+        return new Promise(function(resolve, reject) {
+            let numLoaded = 0;
+            let worldlist= [];
+            let flag = "fail";
+            for(let j=0;j<meta.frames.length;j++){
+                let frame = meta.frames[j];
+                let [x,y,z] = _self.editor.data.allocateOffset();
+                let world = new World(_self.editor.data, sceneName, frame, [1000.0*x, 1000.0*y, 1000.0*z], ()=>{
+                    numLoaded++;
+                    worldlist.push(world);
+                    if(numLoaded>=meta.frames.length){
+                        // console.log(sceneName+" save this scene success");
+                        worldlist.forEach(w=>{
+                            w.annotation.boxes.forEach(box=> _self.change_box_velocity(box,worldlist));
+                        });
+                        _self.doSaveWorldList(worldlist,false);
+                        flag = "success";
+                        resolve(flag);
+                    }
+                });
+            }
+        }
+        )
     }
 
 

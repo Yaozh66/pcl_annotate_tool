@@ -121,11 +121,13 @@ cls_attr_dist = {
     },
 }
 
-dataroot = "/home/yaozh/data/nuscenes/nuscenes/v1.0-mini"
-trackfile = "/home/yaozh/WebstormProjects/pcl_annotate_tool/data/SUSTech_data_track_infos.json"
-with open(dataroot+"/SUSTech_data_infos_real.pkl", "rb") as f:
+dataroot = "/home/yaozh/data/nuscenes/nuscenes/v1.0-train-val"
+trackfile = "/home/yaozh/WebstormProjects/pcl_annotate_tool/data/train/SUSTech_data_track_infostrain.json"
+with open(dataroot+"/SUSTech_data_infostrain_real.pkl", "rb") as f:
     nusc_info = pickle.load(f)
 
+with open(trackfile, "r") as f:
+    track_res = json.load(f)
 
 
 this_dir = os.path.dirname(os.path.abspath(__file__))
@@ -306,32 +308,33 @@ def nusc_get_all_objs(scene):
     return nusc_info[scene]["obj_stats"]
 
 has_read = False
-track_res = []
 def read_annotations(scene, frame, mode="normal"):
     if scene[:4] == "nusc":
-        filename = os.path.join(os.getcwd(),"data/nusc/" + scene + "/label/",frame+".json")
-        if (os.path.isfile(filename)):
-            with open(filename, "r") as f:
-                ann = json.load(f)
-            return {"anns":ann,"has_file":True,"from":"label"}
+        global has_read,track_res,trackfile
+        if mode == "pre_track":
+            if os.path.isfile(trackfile):
+                return {"anns":track_res[nusc_info[scene]["frames"][int(frame)]],"has_file":True,"from":"track"}
+            else:
+                return {"anns":[],"has_file":False,"from":"gt"}
         else:
-            global has_read,track_res
-            filename = os.path.join(os.getcwd(),"tmp/nusc/" + scene + "/label/",frame+".json")
+            filename = os.path.join(os.getcwd(),"data/nusc/" + scene + "/label/",frame+".json")
             if (os.path.isfile(filename)):
                 with open(filename, "r") as f:
                     ann = json.load(f)
-                return {"anns":ann,"has_file":True,"from":"tmp"}
-            elif mode != "real":
-                return {"anns":nusc_info[scene]["anns"][int(frame)],"has_file":False,"from":"gt"}
+                return {"anns":ann,"has_file":True,"from":"label"}
             else:
-                if os.path.isfile(trackfile):
-                    if not has_read:
-                        with open(trackfile, "r") as f:
-                            track_res = json.load(f)
-                        has_read = True
-                    return {"anns":track_res[nusc_info[scene]["frames"][int(frame)]],"has_file":True,"from":"track"}
+                filename = os.path.join(os.getcwd(),"tmp/nusc/" + scene + "/label/",frame+".json")
+                if (os.path.isfile(filename)):
+                    with open(filename, "r") as f:
+                        ann = json.load(f)
+                    return {"anns":ann,"has_file":True,"from":"tmp"}
+                elif mode != "real":
+                    return {"anns":nusc_info[scene]["anns"][int(frame)],"has_file":False,"from":"gt"}
                 else:
-                    return {"anns":[],"has_file":False,"from":"gt"}
+                    if os.path.isfile(trackfile):
+                        return {"anns":track_res[nusc_info[scene]["frames"][int(frame)]],"has_file":True,"from":"track"}
+                    else:
+                        return {"anns":[],"has_file":False,"from":"gt"}
     else:
         filename = os.path.join(root_dir, scene, "label", frame + ".json")
         if (os.path.isfile(filename)):

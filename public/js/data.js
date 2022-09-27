@@ -3,6 +3,7 @@
 import {World} from "./world.js";
 import {Debug} from "./debug.js";
 import {logger} from "./log.js"
+import {saveWorldList} from "./save.js";
 
 class Data
 {
@@ -213,15 +214,20 @@ class Data
             this._createWorld(sceneName, frame,()=>{
                 numLoaded++;
                 if(numLoaded==pendingFrames.length){
-                    console.log("Preloaded All frames in "+sceneName);
                     _self.worldList.forEach(w=>{
                         w.annotation.boxes.forEach(box=>{
                                 window.editor.change_box_velocity(box);
-                                if(box.world.from=="tmp")
+                                if(box.world.from=="tmp" && window.editor.tracker)
                                     window.editor.tracker.update_box(box.world.frameInfo.frame,box,'modify');
                             });
                         }
                     );
+                    if(this.worldList.length!=this.world.frameInfo.sceneMeta.frames.length)
+                        console.log("Preload Error")
+                    else{
+                        // saveWorldList(this.worldList,true,false);
+                        console.log("Preloaded All frames in "+sceneName);
+                    }
                 }
 
             });

@@ -30,7 +30,8 @@ function reloadWorldList(worldList, done,obj_id){
                     window.editor.infoBox.show("Notice", "Reload Success")
                 }
             });
-            window.editor.tracker.reload(worldList,obj_id)
+            if(window.editor.tracker)
+                window.editor.tracker.reload(worldList,obj_id)
             if (done)
                 done();
         }
@@ -116,7 +117,7 @@ function doSaveWorldList(worldList, done,save_nusc = false,async = true)
         if (this.status == 200) {
             worldList.forEach(w=>{
                 w.annotation.resetModified();
-                if(save_nusc)
+                if(save_nusc && window.editor.tracker)
                     window.editor.tracker.update_after_save(w.frameInfo.scene,w.frameInfo.frame,w.annotation.toBoxAnnotations())
             })
             if(save_nusc)

@@ -183,8 +183,8 @@ function Editor(editorUi, wrapperUi, editorCfg, data, name="editor"){
                 this.render();
             }
         );
-
-        this.tracker = new tracker(editorCfg);
+        if(this.data.cfg.online_track)
+            this.tracker = new tracker(editorCfg);
 
         this.mouse = new Mouse(
             this.viewManager.mainView,
@@ -598,7 +598,8 @@ function Editor(editorUi, wrapperUi, editorCfg, data, name="editor"){
             logger.errorBtn.onclick();
             break;
         case 'cm-track-scene':
-            await this.tracker.track(this.data.world.frameInfo.scene,this.data.world.frameInfo.frame_index)
+            if(window.editor.tracker)
+                await this.tracker.track(this.data.world.frameInfo.scene,this.data.world.frameInfo.frame_index)
             break;
         case 'cm-track-all-static':
             this.autoAnnotate_Static(this.data.world.frameInfo.frame_index)
@@ -727,7 +728,8 @@ function Editor(editorUi, wrapperUi, editorCfg, data, name="editor"){
                     box.obj_type = this.selected_box.obj_type;
                     box.obj_attr = this.selected_box.obj_attr;
                     w.annotation.setModified();
-                    window.editor.tracker.update_box(box.world.frameInfo.frame,box,"modify");
+                    if(window.editor.tracker)
+                        window.editor.tracker.update_box(box.world.frameInfo.frame,box,"modify");
                 }
             });
             this.header.updateModifiedStatus();
@@ -742,7 +744,8 @@ function Editor(editorUi, wrapperUi, editorCfg, data, name="editor"){
                     box.scale.y = this.selected_box.scale.y;
                     box.scale.z = this.selected_box.scale.z;
                     w.annotation.setModified();
-                    window.editor.tracker.update_box(box.world.frameInfo.frame,box,"modify");
+                    if(window.editor.tracker)
+                        window.editor.tracker.update_box(box.world.frameInfo.frame,box,"modify");
                 }
             });
             this.header.updateModifiedStatus();
@@ -1054,7 +1057,8 @@ function Editor(editorUi, wrapperUi, editorCfg, data, name="editor"){
             let category = event.currentTarget.value;
             objIdManager.delObject({category: this.selected_box.obj_type,
                 id: this.selected_box.obj_track_id,})
-            window.editor.tracker.update_box(this.selected_box.world.frameInfo.frame,this.selected_box,"delete");
+            if(window.editor.tracker)
+                window.editor.tracker.update_box(this.selected_box.world.frameInfo.frame,this.selected_box,"delete");
             this.selected_box.obj_type = category;
             this.floatLabelManager.set_object_type(this.selected_box.obj_local_id, this.selected_box.obj_type);
             this.on_box_changed(this.selected_box);
@@ -1073,7 +1077,8 @@ function Editor(editorUi, wrapperUi, editorCfg, data, name="editor"){
     {
         objIdManager.delObject({category: this.selected_box.obj_type,
             id: this.selected_box.obj_track_id,});
-        window.editor.tracker.update_box(this.selected_box.world.frameInfo.frame,this.selected_box,"delete");
+        if(window.editor.tracker)
+            window.editor.tracker.update_box(this.selected_box.world.frameInfo.frame,this.selected_box,"delete");
         this.selected_box.obj_track_id = id;
         this.floatLabelManager.set_object_track_id(this.selected_box.obj_local_id, this.selected_box.obj_track_id);
 
@@ -1803,7 +1808,8 @@ function Editor(editorUi, wrapperUi, editorCfg, data, name="editor"){
             case 'f':
                 if (ev.shiftKey) {
                     if(ev.ctrlKey)
-                        await this.tracker.track(this.data.world.frameInfo.scene,this.data.world.frameInfo.frame_index);
+                        if(window.editor.tracker)
+                            await this.tracker.track(this.data.world.frameInfo.scene,this.data.world.frameInfo.frame_index);
                     else{
                         if (this.selected_box) {
                             this.boxOp.rotate_z(this.selected_box, -this.editorCfg.rotateStep, true);
@@ -2129,7 +2135,8 @@ function Editor(editorUi, wrapperUi, editorCfg, data, name="editor"){
         this.imageContextManager.boxes_manager.remove_box(box.obj_local_id);
         this.floatLabelManager.remove_box(box);
         this.fastToolBox.hide();
-        this.tracker.update_box(box.world.frameInfo.frame,box,"delete");
+        if(window.editor.tracker)
+            this.tracker.update_box(box.world.frameInfo.frame,box,"delete");
         objIdManager.delObject({category: box.obj_type,id: box.obj_track_id});
         box.world.annotation.unload_box(box);
         box.world.annotation.remove_box(box);
@@ -2201,7 +2208,8 @@ function Editor(editorUi, wrapperUi, editorCfg, data, name="editor"){
         box.globalpsr = {position:{x:globalpos.x,y:globalpos.y,z:globalpos.z},
             rotation:{x:globalrot.x,y:globalrot.y,z:globalrot.z}};
         this.change_box_velocity(box);
-        window.editor.tracker.update_box(box.world.frameInfo.frame,box,"modify");
+        if(window.editor.tracker)
+            window.editor.tracker.update_box(box.world.frameInfo.frame,box,"modify");
 
 
         if (!this.imageContextManager.hidden())
